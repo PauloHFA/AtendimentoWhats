@@ -1,0 +1,370 @@
+metadata:
+  generated: "2026-11-08"
+  source_spec: "Automação de Atendimento via WhatsApp Documento de Requisitos e Especificações.pdf"
+  target_plan: "plan.md"
+
+summary:
+  total_requirements: 43
+  covered_requirements: 43
+  missing_requirements: 0
+  coverage_percentage: 100.0
+
+requirements:
+  - req_id: "RF-01"
+    req_description: "GET /webhook verifica a Meta"
+    priority: "M"
+    plan_mapping:
+      phase: "Phase-2"
+      phase_name: "Fundacional"
+      items: [{item_id: "2.2", description: "Entrada segura de eventos"}]
+  - req_id: "RF-02"
+    req_description: "POST /webhook valida assinatura e responde rapidamente"
+    priority: "M"
+    plan_mapping:
+      phase: "Phase-2"
+      phase_name: "Fundacional"
+      items: [{item_id: "2.2", description: "Entrada segura de eventos"}]
+  - req_id: "RF-03"
+    req_description: "Processar mensagens de forma assíncrona"
+    priority: "M"
+    plan_mapping:
+      phase: "Phase-2"
+      phase_name: "Fundacional"
+      items:
+        - {item_id: "2.2", description: "Entrada segura de eventos"}
+        - {item_id: "2.3", description: "Worker, retentativas e status"}
+  - req_id: "RF-04"
+    req_description: "Deduplicar eventos pelo wamid"
+    priority: "M"
+    plan_mapping:
+      phase: "Phase-2"
+      phase_name: "Fundacional"
+      items:
+        - {item_id: "2.1", description: "Persistência e migrações"}
+        - {item_id: "2.2", description: "Entrada segura de eventos"}
+  - req_id: "RF-05"
+    req_description: "Suportar texto, interativos e mídia"
+    priority: "M"
+    plan_mapping:
+      phase: "Phase-1/3"
+      phase_name: "Setup/US1"
+      items:
+        - {item_id: "1.2", description: "Abstração de canal e simulador"}
+        - {item_id: "3.2", description: "Saudação, menus e tipos de mensagem"}
+  - req_id: "RF-06"
+    req_description: "Manter sessão e estado por cliente"
+    priority: "M"
+    plan_mapping:
+      phase: "Phase-2/3"
+      phase_name: "Fundacional/US1"
+      items:
+        - {item_id: "2.1", description: "Persistência e migrações"}
+        - {item_id: "3.1", description: "Sessão e máquina de estados"}
+  - req_id: "RF-07"
+    req_description: "Enviar menus interativos e texto"
+    priority: "M"
+    plan_mapping:
+      phase: "Phase-1/3"
+      phase_name: "Setup/US1"
+      items:
+        - {item_id: "1.2", description: "Abstração de canal e simulador"}
+        - {item_id: "3.2", description: "Saudação, menus e tipos de mensagem"}
+  - req_id: "RF-08"
+    req_description: "Marcar mensagem como lida e indicar digitação quando disponível"
+    priority: "S"
+    plan_mapping:
+      phase: "Phase-1/3"
+      phase_name: "Setup/US1"
+      items:
+        - {item_id: "1.2", description: "Abstração de canal e simulador"}
+        - {item_id: "3.2", description: "Saudação, menus e tipos de mensagem"}
+  - req_id: "RF-09"
+    req_description: "Responder FAQ citando a fonte"
+    priority: "M"
+    plan_mapping:
+      phase: "Phase-3"
+      phase_name: "US1"
+      items: [{item_id: "3.3", description: "FAQ e fallback seguro"}]
+  - req_id: "RF-10"
+    req_description: "Consultar status de pedido validado"
+    priority: "M"
+    plan_mapping:
+      phase: "Phase-4"
+      phase_name: "US2"
+      items: [{item_id: "4.1", description: "Consulta de pedido"}]
+  - req_id: "RF-11"
+    req_description: "Criar, consultar e cancelar agendamentos"
+    priority: "S"
+    plan_mapping:
+      phase: "Phase-4"
+      phase_name: "US2"
+      items: [{item_id: "4.2", description: "Agendamento"}]
+  - req_id: "RF-12"
+    req_description: "Handoff com ticket, resumo e fila"
+    priority: "M"
+    plan_mapping:
+      phase: "Phase-5"
+      phase_name: "US3"
+      items: [{item_id: "5.1", description: "Tickets, fila e atendimento"}]
+  - req_id: "RF-13"
+    req_description: "Painel mínimo do atendente"
+    priority: "S"
+    plan_mapping:
+      phase: "Phase-5"
+      phase_name: "US3"
+      items: [{item_id: "5.1", description: "Tickets, fila e atendimento"}]
+  - req_id: "RF-14"
+    req_description: "Controlar janela de 24 h e templates"
+    priority: "M"
+    plan_mapping:
+      phase: "Phase-4"
+      phase_name: "US2"
+      items: [{item_id: "4.3", description: "Consentimento, expediente e janela de mensagens"}]
+  - req_id: "RF-15"
+    req_description: "Registrar opt-in, opt-out e histórico"
+    priority: "M"
+    plan_mapping:
+      phase: "Phase-4"
+      phase_name: "US2"
+      items: [{item_id: "4.3", description: "Consentimento, expediente e janela de mensagens"}]
+  - req_id: "RF-16"
+    req_description: "Horário de atendimento e resposta fora do expediente"
+    priority: "S"
+    plan_mapping:
+      phase: "Phase-4"
+      phase_name: "US2"
+      items: [{item_id: "4.3", description: "Consentimento, expediente e janela de mensagens"}]
+  - req_id: "RF-17"
+    req_description: "IA restrita ao escopo do negócio (fase 2)"
+    priority: "S"
+    plan_mapping:
+      phase: "Phase-6"
+      phase_name: "US4 — fase posterior ao MVP"
+      items: [{item_id: "6.1", description: "Classificação, RAG e guardrails"}]
+  - req_id: "RF-18"
+    req_description: "Contabilizar mensagens e alertar sobre cota"
+    priority: "S"
+    plan_mapping:
+      phase: "Phase-4/7"
+      phase_name: "US2/Transversal"
+      items:
+        - {item_id: "4.3", description: "Consentimento, expediente e janela de mensagens"}
+        - {item_id: "7.1", description: "Métricas, privacidade e controles operacionais"}
+  - req_id: "RF-19"
+    req_description: "Pesquisa de satisfação"
+    priority: "C"
+    plan_mapping:
+      phase: "Phase-7"
+      phase_name: "Transversal"
+      items: [{item_id: "7.1", description: "Métricas, privacidade e controles operacionais"}]
+  - req_id: "RF-20"
+    req_description: "Exportar métricas e conversas anonimizadas"
+    priority: "C"
+    plan_mapping:
+      phase: "Phase-7"
+      phase_name: "Transversal"
+      items: [{item_id: "7.1", description: "Métricas, privacidade e controles operacionais"}]
+  - req_id: "RF-21"
+    req_description: "Disponibilizar simulador local"
+    priority: "M"
+    plan_mapping:
+      phase: "Phase-1/7"
+      phase_name: "Setup/Transversal"
+      items:
+        - {item_id: "1.1", description: "Estrutura do projeto e execução local"}
+        - {item_id: "1.2", description: "Abstração de canal e simulador"}
+        - {item_id: "7.2", description: "Validação ponta a ponta e documentação"}
+  - req_id: "RF-22"
+    req_description: "Expor /health e /metrics"
+    priority: "S"
+    plan_mapping:
+      phase: "Phase-2/7"
+      phase_name: "Fundacional/Transversal"
+      items:
+        - {item_id: "2.2", description: "Entrada segura de eventos"}
+        - {item_id: "7.1", description: "Métricas, privacidade e controles operacionais"}
+  - req_id: "RNF-01"
+    req_description: "ACK <1 s p95; primeira resposta <5 s p95"
+    priority: "NFR"
+    plan_mapping:
+      phase: "Phase-2/7"
+      phase_name: "Fundacional/Transversal"
+      items:
+        - {item_id: "2.2", description: "Entrada segura de eventos"}
+        - {item_id: "7.2", description: "Validação ponta a ponta e documentação"}
+  - req_id: "RNF-02"
+    req_description: "Backoff, durabilidade e idempotência"
+    priority: "NFR"
+    plan_mapping:
+      phase: "Phase-2/7"
+      phase_name: "Fundacional/Transversal"
+      items:
+        - {item_id: "2.1", description: "Persistência e migrações"}
+        - {item_id: "2.2", description: "Entrada segura de eventos"}
+        - {item_id: "2.3", description: "Worker, retentativas e status"}
+        - {item_id: "7.2", description: "Validação ponta a ponta e documentação"}
+  - req_id: "RNF-03"
+    req_description: "Reinício automático e disponibilidade pequena"
+    priority: "NFR"
+    plan_mapping:
+      phase: "Phase-7"
+      phase_name: "Transversal"
+      items: [{item_id: "7.1", description: "Métricas, privacidade e controles operacionais"}]
+  - req_id: "RNF-04"
+    req_description: "Assinatura, segredos e rate limiting"
+    priority: "NFR"
+    plan_mapping:
+      phase: "Phase-2/7"
+      phase_name: "Fundacional/Transversal"
+      items:
+        - {item_id: "2.2", description: "Entrada segura de eventos"}
+        - {item_id: "7.1", description: "Métricas, privacidade e controles operacionais"}
+  - req_id: "RNF-05"
+    req_description: "Minimização, mascaramento, retenção e exclusão"
+    priority: "NFR"
+    plan_mapping:
+      phase: "Phase-7"
+      phase_name: "Transversal"
+      items: [{item_id: "7.1", description: "Métricas, privacidade e controles operacionais"}]
+  - req_id: "RNF-06"
+    req_description: "Logs estruturados e métricas"
+    priority: "NFR"
+    plan_mapping:
+      phase: "Phase-7"
+      phase_name: "Transversal"
+      items: [{item_id: "7.1", description: "Métricas, privacidade e controles operacionais"}]
+  - req_id: "RNF-07"
+    req_description: "Docker Compose sobe API, worker, banco e Redis"
+    priority: "NFR"
+    plan_mapping:
+      phase: "Phase-1/7"
+      phase_name: "Setup/Transversal"
+      items:
+        - {item_id: "1.1", description: "Estrutura do projeto e execução local"}
+        - {item_id: "7.2", description: "Validação ponta a ponta e documentação"}
+  - req_id: "RNF-08"
+    req_description: "Simulador e cobertura da lógica de fluxo >=80%"
+    priority: "NFR"
+    plan_mapping:
+      phase: "Phase-1/7"
+      phase_name: "Setup/Transversal"
+      items:
+        - {item_id: "1.1", description: "Estrutura do projeto e execução local"}
+        - {item_id: "7.2", description: "Validação ponta a ponta e documentação"}
+  - req_id: "RNF-09"
+    req_description: "Ferramentas gratuitas e controle de consumo"
+    priority: "NFR"
+    plan_mapping:
+      phase: "Phase-1/4/7"
+      phase_name: "Setup/US2/Transversal"
+      items:
+        - {item_id: "1.1", description: "Estrutura do projeto e execução local"}
+        - {item_id: "4.3", description: "Consentimento, expediente e janela de mensagens"}
+        - {item_id: "7.1", description: "Métricas, privacidade e controles operacionais"}
+  - req_id: "RNF-10"
+    req_description: "Canal abstrato e versão Graph configurável"
+    priority: "NFR"
+    plan_mapping:
+      phase: "Phase-1"
+      phase_name: "Setup"
+      items: [{item_id: "1.2", description: "Abstração de canal e simulador"}]
+  - req_id: "RN-01"
+    req_description: "Mensagem livre apenas na janela de 24 h"
+    priority: "BUSINESS_RULE"
+    plan_mapping:
+      phase: "Phase-4"
+      phase_name: "US2"
+      items: [{item_id: "4.3", description: "Consentimento, expediente e janela de mensagens"}]
+  - req_id: "RN-02"
+    req_description: "Template aprovado fora da janela"
+    priority: "BUSINESS_RULE"
+    plan_mapping:
+      phase: "Phase-4"
+      phase_name: "US2"
+      items: [{item_id: "4.3", description: "Consentimento, expediente e janela de mensagens"}]
+  - req_id: "RN-03"
+    req_description: "Opt-in/opt-out de mensagens ativas"
+    priority: "BUSINESS_RULE"
+    plan_mapping:
+      phase: "Phase-4"
+      phase_name: "US2"
+      items: [{item_id: "4.3", description: "Consentimento, expediente e janela de mensagens"}]
+  - req_id: "RN-04"
+    req_description: "Humano acessível a qualquer momento"
+    priority: "BUSINESS_RULE"
+    plan_mapping:
+      phase: "Phase-3/5"
+      phase_name: "US1/US3"
+      items:
+        - {item_id: "3.1", description: "Sessão e máquina de estados"}
+        - {item_id: "5.1", description: "Tickets, fila e atendimento"}
+  - req_id: "RN-05"
+    req_description: "Identificar o bot na primeira mensagem"
+    priority: "BUSINESS_RULE"
+    plan_mapping:
+      phase: "Phase-3"
+      phase_name: "US1"
+      items: [{item_id: "3.2", description: "Saudação, menus e tipos de mensagem"}]
+  - req_id: "RN-06"
+    req_description: "Restringir IA aos assuntos do negócio"
+    priority: "BUSINESS_RULE"
+    plan_mapping:
+      phase: "Phase-3/6"
+      phase_name: "US1/US4"
+      items:
+        - {item_id: "3.3", description: "FAQ e fallback seguro"}
+        - {item_id: "6.1", description: "Classificação, RAG e guardrails"}
+  - req_id: "RN-07"
+    req_description: "FAQ fundamentada; sem fonte, oferecer humano"
+    priority: "BUSINESS_RULE"
+    plan_mapping:
+      phase: "Phase-3/6"
+      phase_name: "US1/US4"
+      items:
+        - {item_id: "3.3", description: "FAQ e fallback seguro"}
+        - {item_id: "6.1", description: "Classificação, RAG e guardrails"}
+  - req_id: "RN-08"
+    req_description: "Não solicitar dados sensíveis desnecessários"
+    priority: "BUSINESS_RULE"
+    plan_mapping:
+      phase: "Phase-3/7"
+      phase_name: "US1/Transversal"
+      items:
+        - {item_id: "3.3", description: "FAQ e fallback seguro"}
+        - {item_id: "7.1", description: "Métricas, privacidade e controles operacionais"}
+  - req_id: "RN-09"
+    req_description: "Após duas falhas de entendimento, oferecer humano"
+    priority: "BUSINESS_RULE"
+    plan_mapping:
+      phase: "Phase-3/5"
+      phase_name: "US1/US3"
+      items:
+        - {item_id: "3.1", description: "Sessão e máquina de estados"}
+        - {item_id: "5.1", description: "Tickets, fila e atendimento"}
+  - req_id: "RN-10"
+    req_description: "Cada wamid processado uma única vez"
+    priority: "BUSINESS_RULE"
+    plan_mapping:
+      phase: "Phase-2"
+      phase_name: "Fundacional"
+      items:
+        - {item_id: "2.1", description: "Persistência e migrações"}
+        - {item_id: "2.2", description: "Entrada segura de eventos"}
+        - {item_id: "2.3", description: "Worker, retentativas e status"}
+  - req_id: "RN-11"
+    req_description: "Monitorar qualidade e pausar envios ativos"
+    priority: "BUSINESS_RULE"
+    plan_mapping:
+      phase: "Phase-7"
+      phase_name: "Transversal"
+      items: [{item_id: "7.1", description: "Métricas, privacidade e controles operacionais"}]
+
+missing_requirements: []
+orphan_plan_items: []
+
+validation:
+  passed: true
+  errors: []
+  warnings:
+    - "IDs RF/RNF/RN foram preservados porque a especificação não possui REQ-XXX."
+    - "Stack, Chatwoot e domínio de demonstração são premissas provisórias a confirmar."

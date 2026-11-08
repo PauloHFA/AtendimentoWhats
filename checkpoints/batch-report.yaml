@@ -1,0 +1,98 @@
+batch_id: "B01"
+completed_tasks: ["T001", "T002"]
+blocked_tasks: []
+required_endpoints: []
+files_changed:
+  T001:
+    - file: "pyproject.toml"
+      change_type: "created"
+      description: "Dependências e configuração de build, pytest, lint e tipagem"
+    - file: "src/__init__.py"
+      change_type: "created"
+      description: "Inicializa pacote da aplicação"
+    - file: "src/main.py"
+      change_type: "created"
+      description: "Aplicação FastAPI inicial com /health"
+    - file: "src/celery_app.py"
+      change_type: "created"
+      description: "Configuração Celery com Redis"
+    - file: "tests/test_health.py"
+      change_type: "created"
+      description: "Teste automatizado do endpoint de saúde"
+    - file: "Dockerfile"
+      change_type: "created"
+      description: "Imagem da aplicação Python 3.12"
+    - file: "docker-compose.yml"
+      change_type: "created"
+      description: "API, worker, PostgreSQL e Redis"
+    - file: ".env.example"
+      change_type: "created"
+      description: "Variáveis de desenvolvimento sem credenciais reais"
+    - file: ".gitignore"
+      change_type: "created"
+      description: "Ignora segredos locais e artefatos Python"
+    - file: ".dockerignore"
+      change_type: "created"
+      description: "Exclui credenciais e artefatos locais do contexto Docker"
+    - file: "README.md"
+      change_type: "created"
+      description: "Instruções locais de setup e execução"
+  T002:
+    - file: ".github/workflows/ci.yml"
+      change_type: "created"
+      description: "CI para pytest, Ruff e mypy"
+upstream_artifacts_consumed:
+  T001:
+    - artifact: "plan.md"
+      used_for: "Stack Python/FastAPI/Celery/PostgreSQL/Redis e requisitos de execução local"
+    - artifact: "Automação de Atendimento via WhatsApp Documento de Requisitos e Especificações.pdf"
+      used_for: "Stack e fluxo de execução recomendados na especificação"
+  T002:
+    - artifact: "plan.md"
+      used_for: "Critérios de teste, lint e tipagem na CI"
+evidence_mapping:
+  T001:
+    - upstream: "plan.md#1.1 Estrutura do projeto e execução local"
+      output: "docker-compose.yml"
+      evidence: "docker compose --env-file .env.example config --quiet (exit code 0)"
+    - upstream: "plan.md#Technical Context: FastAPI"
+      output: "src/main.py#health"
+      evidence: "GET /health returned HTTP 200 and {\"status\":\"ok\"}"
+  T002:
+    - upstream: "plan.md#Definition of Done: lint e tipagem passando no CI"
+      output: ".github/workflows/ci.yml"
+      evidence: "python -m pytest, ruff check ., and mypy passed locally"
+traceability:
+  - requirement: "RNF-07"
+    plan_item: "1.1"
+    task: "T001"
+    files: ["Dockerfile", "docker-compose.yml"]
+    status: "completed"
+  - requirement: "RNF-08"
+    plan_item: "1.1"
+    task: "T002"
+    files: [".github/workflows/ci.yml", "tests/test_health.py"]
+    status: "completed"
+protocol_violation: false
+errors: []
+warnings:
+  - severity: MEDIUM
+    message: "Docker Compose syntax was validated, but the Docker daemon is unavailable, so service startup and image build remain unverified."
+test_results:
+  T001:
+    command: "python -m pytest; ruff check .; mypy; docker compose --env-file .env.example config --quiet"
+    passed: 1
+    failed: 0
+    skipped: 0
+    failures: []
+  T002:
+    command: "python -m pytest; ruff check .; mypy"
+    passed: 1
+    failed: 0
+    skipped: 0
+    failures: []
+endpoint_probes:
+  - method: GET
+    path: "/health"
+    status: 200
+    result: "PASS"

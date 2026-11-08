@@ -1,0 +1,64 @@
+services:
+  api:
+    build: .
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      DATABASE_URL: postgresql+psycopg://atendimento:${POSTGRES_PASSWORD}@db:5432/atendimento
+      META_APP_SECRET: ${META_APP_SECRET:-}
+      META_VERIFY_TOKEN: ${META_VERIFY_TOKEN:-}
+      META_ACCESS_TOKEN: ${META_ACCESS_TOKEN:-}
+      META_PHONE_NUMBER_ID: ${META_PHONE_NUMBER_ID:-}
+      META_GRAPH_API_VERSION: ${META_GRAPH_API_VERSION:-}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    build: .
+    command: celery -A src.celery_app:celery_app worker --loglevel=INFO
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      DATABASE_URL: postgresql+psycopg://atendimento:${POSTGRES_PASSWORD}@db:5432/atendimento
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: atendimento
+      POSTGRES_USER: atendimento
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U atendimento -d atendimento"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:

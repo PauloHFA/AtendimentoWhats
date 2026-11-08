@@ -1,0 +1,340 @@
+metadata:
+  generated: "2026-11-08"
+  source_tasks: "plan.md"
+  last_updated: "2026-11-08"
+
+summary:
+  total_tasks: 29
+  completed_tasks: 5
+  in_progress_tasks: 0
+  pending_tasks: 24
+  completion_percentage: 17.2
+
+tasks:
+  - task_id: "T001"
+    description: "Criar estrutura Python, API, configuração, Compose e documentação local"
+    status: "completed"
+    implementation:
+      files_changed:
+        - file: "pyproject.toml"
+          changes:
+            - change_type: "added"
+              description: "Dependências e configuração de build, pytest, Ruff e mypy"
+        - file: "src/main.py"
+          changes:
+            - change_type: "added"
+              description: "Aplicação FastAPI inicial com endpoint de saúde"
+        - file: "src/celery_app.py"
+          changes:
+            - change_type: "added"
+              description: "Aplicação Celery configurada para Redis"
+        - file: "Dockerfile"
+          changes:
+            - change_type: "added"
+              description: "Imagem Python 3.12 para API e worker"
+        - file: "docker-compose.yml"
+          changes:
+            - change_type: "added"
+              description: "Serviços API, worker, PostgreSQL e Redis com health checks"
+        - file: ".env.example"
+          changes:
+            - change_type: "added"
+              description: "Variáveis locais de exemplo sem credenciais reais"
+        - file: ".gitignore"
+          changes:
+            - change_type: "added"
+              description: "Ignora ambiente virtual, caches e arquivo .env"
+        - file: ".dockerignore"
+          changes:
+            - change_type: "added"
+              description: "Exclui credenciais locais e arquivos de desenvolvimento da imagem"
+        - file: "README.md"
+          changes:
+            - change_type: "added"
+              description: "Instruções de setup, execução e verificações"
+        - file: "tests/test_health.py"
+          changes:
+            - change_type: "added"
+              description: "Teste da resposta de health"
+        - file: "src/__init__.py"
+          changes:
+            - change_type: "added"
+              description: "Inicializa pacote da aplicação"
+    verification:
+      build_passed: true
+      test_results:
+        command: "python -m pytest; ruff check .; mypy; docker compose --env-file .env.example config --quiet"
+        passed: 1
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: "Compose validado estaticamente; startup de containers não verificado porque o daemon Docker não está ativo."
+    upstream_trace:
+      plan_item: "1.1"
+      requirements: ["RF-21", "RNF-07", "RNF-09"]
+      full_trace: "RF-21,RNF-07,RNF-09 → Phase-1.1 → T001 → scaffold e Compose"
+  - task_id: "T002"
+    description: "Criar workflow CI de testes, lint e tipagem"
+    status: "completed"
+    implementation:
+      files_changed:
+        - file: ".github/workflows/ci.yml"
+          changes:
+            - change_type: "added"
+              description: "CI em Python 3.12 executa pytest, Ruff e mypy"
+    verification:
+      build_passed: true
+      test_results:
+        command: "python -m pytest; ruff check .; mypy"
+        passed: 1
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: "Os comandos configurados no workflow passaram localmente; execução remota de GitHub Actions não disponível."
+    upstream_trace:
+      plan_item: "1.1"
+      requirements: ["RNF-08"]
+      full_trace: "RNF-08 → Phase-1.1 → T002 → .github/workflows/ci.yml"
+  - task_id: "T003"
+    description: "Implementar abstração de canal e simulador"
+    status: "completed"
+    implementation:
+      files_changed:
+        - file: "src/channel/adapter.py"
+          changes:
+            - change_type: "added"
+              description: "Protocolo de canal, modelos tipados e parser de mensagens de entrada"
+        - file: "src/channel/simulator.py"
+          changes:
+            - change_type: "added"
+              description: "Adaptador local que captura envios e recibos de leitura"
+        - file: "src/channel/__init__.py"
+          changes:
+            - change_type: "added"
+              description: "Inicializa pacote de canal"
+        - file: "simulator/payloads/text-message.json"
+          changes:
+            - change_type: "added"
+              description: "Payload sintético de webhook para testes locais"
+        - file: "tests/contract/test_channel_adapter.py"
+          changes:
+            - change_type: "added"
+              description: "Testes de payloads, mídia, status e mensagens de saída"
+    verification:
+      build_passed: true
+      test_results:
+        command: "python -m pytest tests/contract/test_channel_adapter.py"
+        passed: 9
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: "O adaptador é local e não chama a Meta."
+    upstream_trace:
+      plan_item: "1.2"
+      requirements: ["RF-05", "RF-07", "RF-08", "RF-21", "RNF-10"]
+      full_trace: "RF-05,RF-07,RF-08,RF-21,RNF-10 → Phase-1.2 → T003 → src/channel/"
+  - task_id: "T008"
+    description: "Implementar máquina de estados da conversa"
+    status: "completed"
+    implementation:
+      files_changed:
+        - file: "src/flows/__init__.py"
+          changes:
+            - change_type: "added"
+              description: "Inicializa pacote de fluxos"
+        - file: "src/flows/state_machine.py"
+          changes:
+            - change_type: "added"
+              description: "Estados BOT/HUMAN/CLOSED, expiração e handoff após falhas"
+        - file: "tests/unit/test_state_machine.py"
+          changes:
+            - change_type: "added"
+              description: "Testes de TTL, falhas consecutivas e posse humana"
+    verification:
+      build_passed: true
+      test_results:
+        command: "python -m pytest tests/unit/test_state_machine.py"
+        passed: 7
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: "O estado é puro e testável; persistência será implementada em tarefa futura."
+    upstream_trace:
+      plan_item: "3.1"
+      requirements: ["RF-06", "RN-04", "RN-09"]
+      full_trace: "RF-06,RN-04,RN-09 → Phase-3.1 → T008 → src/flows/state_machine.py"
+  - task_id: "T009"
+    description: "Criar saudação, aviso do bot, consentimento inicial e menu"
+    status: "completed"
+    implementation:
+      files_changed:
+        - file: "src/flows/welcome.py"
+          changes:
+            - change_type: "added"
+              description: "Mensagem de primeiro contato com transparência e opções interativas"
+        - file: "tests/dialogs/test_first_contact.py"
+          changes:
+            - change_type: "added"
+              description: "Testes de identificação, consentimento e acesso humano"
+        - file: "README.md"
+          changes:
+            - change_type: "modified"
+              description: "Documenta componentes implementados"
+    verification:
+      build_passed: true
+      test_results:
+        command: "python -m pytest tests/dialogs/test_first_contact.py"
+        passed: 2
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: "O registro persistente da escolha de consentimento será concluído em T015."
+    upstream_trace:
+      plan_item: "3.2"
+      requirements: ["RF-07", "RN-05"]
+      full_trace: "RF-07,RN-05 → Phase-3.2 → T009 → src/flows/welcome.py"
+
+pending_tasks:
+  - task_id: "T004"
+    description: "Implementar modelos e migrações"
+    blocked_by: []
+    priority: "P1"
+  - task_id: "T005"
+    description: "Implementar webhook e validação de assinatura"
+    blocked_by: ["T004"]
+    priority: "P1"
+  - task_id: "T006"
+    description: "Persistir, deduplicar e enfileirar eventos"
+    blocked_by: ["T004", "T005"]
+    priority: "P1"
+  - task_id: "T007"
+    description: "Implementar worker, retries e status de entrega"
+    blocked_by: ["T006"]
+    priority: "P1"
+  - task_id: "T010"
+    description: "Tratar tipos de entrada"
+    blocked_by: ["T003"]
+    priority: "P1"
+  - task_id: "T011"
+    description: "Implementar FAQ fundamentada"
+    blocked_by: ["T008"]
+    priority: "P1"
+  - task_id: "T012"
+    description: "Criar diálogos dourados"
+    blocked_by: ["T009", "T011"]
+    priority: "P1"
+  - task_id: "T013"
+    description: "Implementar consulta simulada de pedidos"
+    blocked_by: ["T008"]
+    priority: "P1"
+  - task_id: "T014"
+    description: "Implementar serviço de agendamento"
+    blocked_by: ["T004", "T008"]
+    priority: "P1"
+  - task_id: "T015"
+    description: "Implementar opt-in e opt-out"
+    blocked_by: ["T004"]
+    priority: "P1"
+  - task_id: "T016"
+    description: "Implementar janela, templates e contagem"
+    blocked_by: ["T004", "T003"]
+    priority: "P1"
+  - task_id: "T017"
+    description: "Criar diálogos de pedido, agendamento e consentimento"
+    blocked_by: ["T013", "T014", "T015", "T016"]
+    priority: "P1"
+  - task_id: "T018"
+    description: "Criar tickets e fluxo de handoff"
+    blocked_by: ["T004", "T008"]
+    priority: "P1"
+  - task_id: "T019"
+    description: "Integrar Chatwoot e API do atendente"
+    blocked_by: ["T018"]
+    priority: "P1"
+  - task_id: "T020"
+    description: "Implementar classificador de intenção"
+    blocked_by: ["T011"]
+    priority: "P2"
+  - task_id: "T021"
+    description: "Implementar RAG e guardrails"
+    blocked_by: ["T020"]
+    priority: "P2"
+  - task_id: "T022"
+    description: "Testar guardrails e qualidade de IA"
+    blocked_by: ["T021"]
+    priority: "P2"
+  - task_id: "T023"
+    description: "Implementar health, métricas e exportação"
+    blocked_by: ["T004"]
+    priority: "P2"
+  - task_id: "T024"
+    description: "Implementar controles de privacidade"
+    blocked_by: ["T004"]
+    priority: "P1"
+  - task_id: "T025"
+    description: "Implementar controles de qualidade do canal"
+    blocked_by: ["T003"]
+    priority: "P2"
+  - task_id: "T026"
+    description: "Completar testes e cobertura de fluxo"
+    blocked_by: ["T007", "T012", "T017", "T019"]
+    priority: "P1"
+  - task_id: "T027"
+    description: "Executar teste de carga"
+    blocked_by: ["T007", "T023"]
+    priority: "P2"
+  - task_id: "T028"
+    description: "Validar sandbox Meta"
+    blocked_by: ["T005", "T007"]
+    priority: "P2"
+  - task_id: "T029"
+    description: "Finalizar documentação operacional"
+    blocked_by: ["T028"]
+    priority: "P2"
+
+untracked_changes: []
+
+traceability_chain:
+  - chain_id: "TRACE-RNF-07-T001"
+    requirement: "RNF-07"
+    plan_phase: "Phase-1"
+    plan_item: "1.1"
+    tasks: ["T001"]
+    files: ["docker-compose.yml", "Dockerfile"]
+    status: "partial"
+  - chain_id: "TRACE-RNF-08-T002"
+    requirement: "RNF-08"
+    plan_phase: "Phase-1"
+    plan_item: "1.1"
+    tasks: ["T002"]
+    files: [".github/workflows/ci.yml", "tests/test_health.py"]
+    status: "partial"
+  - chain_id: "TRACE-RF-21-T003"
+    requirement: "RF-21"
+    plan_phase: "Phase-1"
+    plan_item: "1.2"
+    tasks: ["T003"]
+    files: ["src/channel/adapter.py", "src/channel/simulator.py", "simulator/payloads/text-message.json"]
+    status: "partial"
+  - chain_id: "TRACE-RN-09-T008"
+    requirement: "RN-09"
+    plan_phase: "Phase-3"
+    plan_item: "3.1"
+    tasks: ["T008"]
+    files: ["src/flows/state_machine.py"]
+    status: "complete"
+  - chain_id: "TRACE-RN-05-T009"
+    requirement: "RN-05"
+    plan_phase: "Phase-3"
+    plan_item: "3.2"
+    tasks: ["T009"]
+    files: ["src/flows/welcome.py"]
+    status: "complete"
+
+validation:
+  passed: true
+  errors: []
+  warnings:
+    - "Docker Compose foi validado, mas os containers não foram iniciados porque o daemon Docker está indisponível."
+    - "O registro persistente de consentimento será implementado em T015."
+  blocking_issues: []

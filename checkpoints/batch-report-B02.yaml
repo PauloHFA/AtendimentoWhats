@@ -1,0 +1,117 @@
+batch_id: "B02"
+completed_tasks: ["T003", "T008", "T009"]
+blocked_tasks: []
+required_endpoints: []
+files_changed:
+  T003:
+    - file: "src/channel/adapter.py"
+      change_type: "created"
+      description: "Typed channel protocol and inbound payload parser"
+    - file: "src/channel/simulator.py"
+      change_type: "created"
+      description: "Local simulator captures outgoing messages and read receipts"
+    - file: "src/channel/__init__.py"
+      change_type: "created"
+      description: "Channel package"
+    - file: "simulator/payloads/text-message.json"
+      change_type: "created"
+      description: "Synthetic inbound webhook fixture"
+    - file: "tests/contract/test_channel_adapter.py"
+      change_type: "created"
+      description: "Channel parsing and outbound capture contract tests"
+  T008:
+    - file: "src/flows/__init__.py"
+      change_type: "created"
+      description: "Flow package"
+    - file: "src/flows/state_machine.py"
+      change_type: "created"
+      description: "Conversation state and ownership transitions"
+    - file: "tests/unit/test_state_machine.py"
+      change_type: "created"
+      description: "State machine unit tests"
+  T009:
+    - file: "src/flows/welcome.py"
+      change_type: "created"
+      description: "First-contact message and interactive consent/human menu"
+    - file: "tests/dialogs/test_first_contact.py"
+      change_type: "created"
+      description: "First-contact dialog tests"
+    - file: "README.md"
+      change_type: "modified"
+      description: "Documents implemented components"
+upstream_artifacts_consumed:
+  T003:
+    - artifact: "plan.md"
+      used_for: "ChannelAdapter interface and local simulator acceptance criteria"
+    - artifact: "Automação de Atendimento via WhatsApp Documento de Requisitos e Especificações.pdf"
+      used_for: "Inbound message types and simulator behavior"
+  T008:
+    - artifact: "plan.md"
+      used_for: "Session state, expiration, human ownership and misunderstanding threshold"
+  T009:
+    - artifact: "plan.md"
+      used_for: "First-contact bot disclosure, consent prompt and human access"
+evidence_mapping:
+  T003:
+    - upstream: "plan.md#1.2 Abstração de canal e simulador"
+      output: "src/channel/adapter.py"
+      evidence: "9 channel contract tests passed"
+  T008:
+    - upstream: "plan.md#3.1 Sessão e máquina de estados"
+      output: "src/flows/state_machine.py"
+      evidence: "7 state-machine tests passed"
+  T009:
+    - upstream: "plan.md#3.2 Saudação, menus e tipos de mensagem"
+      output: "src/flows/welcome.py"
+      evidence: "2 first-contact dialog tests passed"
+traceability:
+  - requirement: "RF-05"
+    plan_item: "1.2"
+    task: "T003"
+    files: ["src/channel/adapter.py", "src/channel/simulator.py"]
+    status: "completed"
+  - requirement: "RF-21"
+    plan_item: "1.2"
+    task: "T003"
+    files: ["src/channel/simulator.py", "simulator/payloads/text-message.json"]
+    status: "partial"
+  - requirement: "RF-06"
+    plan_item: "3.1"
+    task: "T008"
+    files: ["src/flows/state_machine.py"]
+    status: "partial"
+  - requirement: "RN-04"
+    plan_item: "3.1"
+    task: "T008"
+    files: ["src/flows/state_machine.py"]
+    status: "completed"
+  - requirement: "RN-05"
+    plan_item: "3.2"
+    task: "T009"
+    files: ["src/flows/welcome.py"]
+    status: "completed"
+protocol_violation: false
+errors: []
+warnings:
+  - severity: LOW
+    message: "Persistent session storage and consent recording are still pending."
+test_results:
+  T003:
+    command: "python -m pytest tests/contract/test_channel_adapter.py"
+    passed: 9
+    failed: 0
+    skipped: 0
+    failures: []
+  T008:
+    command: "python -m pytest tests/unit/test_state_machine.py"
+    passed: 7
+    failed: 0
+    skipped: 0
+    failures: []
+  T009:
+    command: "python -m pytest tests/dialogs/test_first_contact.py"
+    passed: 2
+    failed: 0
+    skipped: 0
+    failures: []
+endpoint_probes: []

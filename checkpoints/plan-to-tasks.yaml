@@ -1,0 +1,180 @@
+metadata:
+  generated: "2026-11-08"
+  source_plan: "plan.md"
+  target_tasks: "plan.md (tarefas inline)"
+
+summary:
+  total_plan_items: 15
+  covered_plan_items: 15
+  missing_plan_items: 0
+  coverage_percentage: 100.0
+  total_tasks_generated: 29
+  orphan_tasks: 0
+
+phases:
+  - phase_id: "Phase-1"
+    phase_name: "Setup"
+    items:
+      - item_id: "1.1"
+        description: "Estrutura do projeto e execução local"
+        tasks:
+          - {task_id: "T001", description: "Criar esqueleto e Compose"}
+          - {task_id: "T002", description: "Adicionar CI"}
+      - item_id: "1.2"
+        description: "Abstração de canal e simulador"
+        tasks:
+          - {task_id: "T003", description: "Implementar adapter e simulador"}
+  - phase_id: "Phase-2"
+    phase_name: "Fundacional"
+    items:
+      - item_id: "2.1"
+        description: "Persistência e migrações"
+        tasks:
+          - {task_id: "T004", description: "Criar modelos e migrações"}
+      - item_id: "2.2"
+        description: "Entrada segura de eventos"
+        tasks:
+          - {task_id: "T005", description: "Implementar webhook e assinatura"}
+          - {task_id: "T006", description: "Persistir, deduplicar e enfileirar"}
+      - item_id: "2.3"
+        description: "Worker, retentativas e status"
+        tasks:
+          - {task_id: "T007", description: "Implementar worker e retries"}
+  - phase_id: "Phase-3"
+    phase_name: "US1 — Primeiro contato e FAQ"
+    items:
+      - item_id: "3.1"
+        description: "Sessão e máquina de estados"
+        tasks:
+          - {task_id: "T008", description: "Implementar estados e expiração"}
+      - item_id: "3.2"
+        description: "Saudação, menus e tipos de mensagem"
+        tasks:
+          - {task_id: "T009", description: "Implementar saudação e menus"}
+          - {task_id: "T010", description: "Tratar tipos de entrada"}
+      - item_id: "3.3"
+        description: "FAQ e fallback seguro"
+        tasks:
+          - {task_id: "T011", description: "Implementar FAQ fundamentada"}
+          - {task_id: "T012", description: "Criar diálogos dourados"}
+  - phase_id: "Phase-4"
+    phase_name: "US2 — Pedidos, agendamentos e consentimento"
+    items:
+      - item_id: "4.1"
+        description: "Consulta de pedido"
+        tasks:
+          - {task_id: "T013", description: "Implementar consulta simulada"}
+      - item_id: "4.2"
+        description: "Agendamento"
+        tasks:
+          - {task_id: "T014", description: "Implementar serviço de agenda"}
+      - item_id: "4.3"
+        description: "Consentimento, expediente e janela"
+        tasks:
+          - {task_id: "T015", description: "Implementar opt-in/opt-out"}
+          - {task_id: "T016", description: "Implementar janela, templates e contagem"}
+          - {task_id: "T017", description: "Criar diálogos de pedido/agendamento/consentimento"}
+  - phase_id: "Phase-5"
+    phase_name: "US3 — Handoff humano"
+    items:
+      - item_id: "5.1"
+        description: "Tickets, fila e atendimento"
+        tasks:
+          - {task_id: "T018", description: "Criar ticket e estado de handoff"}
+          - {task_id: "T019", description: "Integrar Chatwoot e API do atendente"}
+  - phase_id: "Phase-6"
+    phase_name: "US4 — IA restrita, fase posterior ao MVP"
+    items:
+      - item_id: "6.1"
+        description: "Classificação, RAG e guardrails"
+        tasks:
+          - {task_id: "T020", description: "Implementar classificador"}
+          - {task_id: "T021", description: "Implementar RAG e guardrails"}
+          - {task_id: "T022", description: "Testar segurança e avaliar qualidade"}
+  - phase_id: "Phase-7"
+    phase_name: "Transversal e conclusão"
+    items:
+      - item_id: "7.1"
+        description: "Métricas, privacidade e controles operacionais"
+        tasks:
+          - {task_id: "T023", description: "Implementar health, métricas e exportação"}
+          - {task_id: "T024", description: "Implementar privacidade e retenção"}
+          - {task_id: "T025", description: "Implementar controles de qualidade"}
+      - item_id: "7.2"
+        description: "Validação ponta a ponta e documentação"
+        tasks:
+          - {task_id: "T026", description: "Completar testes e cobertura"}
+          - {task_id: "T027", description: "Executar teste de carga"}
+          - {task_id: "T028", description: "Validar sandbox Meta"}
+          - {task_id: "T029", description: "Finalizar documentação"}
+
+missing_plan_items: []
+orphan_tasks: []
+
+upstream_trace:
+  - plan_item: "1.1"
+    source_requirements: ["RF-21", "RNF-07", "RNF-09"]
+    tasks: ["T001", "T002"]
+    full_trace: "RF-21,RNF-07,RNF-09 → Phase-1.1 → T001,T002"
+  - plan_item: "1.2"
+    source_requirements: ["RF-05", "RF-07", "RF-08", "RF-21", "RNF-10"]
+    tasks: ["T003"]
+    full_trace: "RF-05,RF-07,RF-08,RF-21,RNF-10 → Phase-1.2 → T003"
+  - plan_item: "2.1"
+    source_requirements: ["RF-04", "RF-06", "RF-12", "RF-15", "RNF-02"]
+    tasks: ["T004"]
+    full_trace: "RF-04,RF-06,RF-12,RF-15,RNF-02 → Phase-2.1 → T004"
+  - plan_item: "2.2"
+    source_requirements: ["RF-01", "RF-02", "RF-03", "RF-04", "RF-22", "RNF-01", "RNF-02", "RNF-04", "RN-10"]
+    tasks: ["T005", "T006"]
+    full_trace: "RF-01,RF-02,RF-03,RF-04,RF-22,RNF-01,RNF-02,RNF-04,RN-10 → Phase-2.2 → T005,T006"
+  - plan_item: "2.3"
+    source_requirements: ["RF-03", "RNF-02", "RN-10"]
+    tasks: ["T007"]
+    full_trace: "RF-03,RNF-02,RN-10 → Phase-2.3 → T007"
+  - plan_item: "3.1"
+    source_requirements: ["RF-06", "RN-04", "RN-09"]
+    tasks: ["T008"]
+    full_trace: "RF-06,RN-04,RN-09 → Phase-3.1 → T008"
+  - plan_item: "3.2"
+    source_requirements: ["RF-05", "RF-07", "RF-08", "RN-05"]
+    tasks: ["T009", "T010"]
+    full_trace: "RF-05,RF-07,RF-08,RN-05 → Phase-3.2 → T009,T010"
+  - plan_item: "3.3"
+    source_requirements: ["RF-09", "RN-06", "RN-07", "RN-08"]
+    tasks: ["T011", "T012"]
+    full_trace: "RF-09,RN-06,RN-07,RN-08 → Phase-3.3 → T011,T012"
+  - plan_item: "4.1"
+    source_requirements: ["RF-10"]
+    tasks: ["T013"]
+    full_trace: "RF-10 → Phase-4.1 → T013"
+  - plan_item: "4.2"
+    source_requirements: ["RF-11"]
+    tasks: ["T014"]
+    full_trace: "RF-11 → Phase-4.2 → T014"
+  - plan_item: "4.3"
+    source_requirements: ["RF-14", "RF-15", "RF-16", "RF-18", "RN-01", "RN-02", "RN-03"]
+    tasks: ["T015", "T016", "T017"]
+    full_trace: "RF-14,RF-15,RF-16,RF-18,RN-01,RN-02,RN-03 → Phase-4.3 → T015,T016,T017"
+  - plan_item: "5.1"
+    source_requirements: ["RF-12", "RF-13", "RN-04", "RN-09"]
+    tasks: ["T018", "T019"]
+    full_trace: "RF-12,RF-13,RN-04,RN-09 → Phase-5.1 → T018,T019"
+  - plan_item: "6.1"
+    source_requirements: ["RF-17", "RN-06", "RN-07", "RN-08"]
+    tasks: ["T020", "T021", "T022"]
+    full_trace: "RF-17,RN-06,RN-07,RN-08 → Phase-6.1 → T020,T021,T022"
+  - plan_item: "7.1"
+    source_requirements: ["RF-18", "RF-19", "RF-20", "RF-22", "RNF-03", "RNF-05", "RNF-06", "RNF-09", "RN-08", "RN-11"]
+    tasks: ["T023", "T024", "T025"]
+    full_trace: "RF-18,RF-19,RF-20,RF-22,RNF-03,RNF-05,RNF-06,RNF-09,RN-08,RN-11 → Phase-7.1 → T023,T024,T025"
+  - plan_item: "7.2"
+    source_requirements: ["RF-21", "RNF-01", "RNF-02", "RNF-07", "RNF-08", "RNF-10"]
+    tasks: ["T026", "T027", "T028", "T029"]
+    full_trace: "RF-21,RNF-01,RNF-02,RNF-07,RNF-08,RNF-10 → Phase-7.2 → T026,T027,T028,T029"
+
+validation:
+  passed: true
+  errors: []
+  warnings:
+    - "O painel é uma integração Chatwoot, não uma UI local; adicionar Playwright se o escopo incluir interface própria."
