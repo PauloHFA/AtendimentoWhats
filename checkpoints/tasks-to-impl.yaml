@@ -5,10 +5,10 @@ metadata:
 
 summary:
   total_tasks: 29
-  completed_tasks: 9
+  completed_tasks: 11
   in_progress_tasks: 0
-  pending_tasks: 20
-  completion_percentage: 31.0
+  pending_tasks: 18
+  completion_percentage: 37.9
 
 tasks:
   - task_id: "T001"
@@ -193,6 +193,62 @@ tasks:
       plan_item: "3.2"
       requirements: ["RF-07", "RN-05"]
       full_trace: "RF-07,RN-05 → Phase-3.2 → T009 → src/flows/welcome.py"
+  - task_id: "T010"
+    description: "Tratar textos, botões, listas e tipos de mídia"
+    status: "completed"
+    implementation:
+      files_changed:
+        - file: "tests/contract/test_channel_adapter.py"
+          changes:
+            - change_type: "modified"
+              description: "Adiciona cobertura de resposta interativa do tipo lista"
+    verification:
+      build_passed: true
+      test_results:
+        command: "python -m pytest tests/contract/test_channel_adapter.py"
+        passed: 10
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: "O parser existente trata texto, botões, respostas de lista e metadados de imagem, áudio e documento."
+    upstream_trace:
+      plan_item: "3.2"
+      requirements: ["RF-05"]
+      full_trace: "RF-05 → Phase-3.2 → T010 → src/channel/adapter.py"
+  - task_id: "T011"
+    description: "Implementar busca FAQ fundamentada e fallback seguro"
+    status: "completed"
+    implementation:
+      files_changed:
+        - file: "src/knowledge/__init__.py"
+          changes:
+            - change_type: "added"
+              description: "Inicializa o pacote de serviços de conhecimento"
+        - file: "src/knowledge/faq.py"
+          changes:
+            - change_type: "added"
+              description: "Busca determinística com normalização, limiar de evidência, citação e rejeição de empate"
+        - file: "tests/unit/test_faq_grounding.py"
+          changes:
+            - change_type: "added"
+              description: "Testa evidência, citação, falta de cobertura, ambiguidade e normalização"
+        - file: "README.md"
+          changes:
+            - change_type: "modified"
+              description: "Documenta resposta FAQ fundamentada e encaminhamento quando não há evidência"
+    verification:
+      build_passed: true
+      test_results:
+        command: "python -m pytest tests/unit/test_faq_grounding.py"
+        passed: 6
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: "Sem cobertura suficiente, perguntas vazias ou artigos empatados, o serviço retorna None para o fluxo oferecer atendimento humano."
+    upstream_trace:
+      plan_item: "3.3"
+      requirements: ["RF-09", "RN-07"]
+      full_trace: "RF-09,RN-07 → Phase-3.3 → T011 → src/knowledge/faq.py"
   - task_id: "T004"
     description: "Implementar modelos e migrações"
     status: "completed"
@@ -343,14 +399,6 @@ tasks:
       full_trace: "RF-03,RNF-02,RN-10 → Phase-2.3 → T007 → src/tasks.py"
 
 pending_tasks:
-  - task_id: "T010"
-    description: "Tratar tipos de entrada"
-    blocked_by: ["T003"]
-    priority: "P1"
-  - task_id: "T011"
-    description: "Implementar FAQ fundamentada"
-    blocked_by: ["T008"]
-    priority: "P1"
   - task_id: "T012"
     description: "Criar diálogos dourados"
     blocked_by: ["T009", "T011"]
@@ -461,6 +509,20 @@ traceability_chain:
     plan_item: "3.2"
     tasks: ["T009"]
     files: ["src/flows/welcome.py"]
+    status: "complete"
+  - chain_id: "TRACE-RF-05-T010"
+    requirement: "RF-05"
+    plan_phase: "Phase-3"
+    plan_item: "3.2"
+    tasks: ["T010"]
+    files: ["src/channel/adapter.py", "tests/contract/test_channel_adapter.py"]
+    status: "complete"
+  - chain_id: "TRACE-RN-07-T011"
+    requirement: "RN-07"
+    plan_phase: "Phase-3"
+    plan_item: "3.3"
+    tasks: ["T011"]
+    files: ["src/knowledge/faq.py", "tests/unit/test_faq_grounding.py"]
     status: "complete"
   - chain_id: "TRACE-RF-04-T004"
     requirement: "RF-04"

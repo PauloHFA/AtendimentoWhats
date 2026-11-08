@@ -1,0 +1,74 @@
+batch_id: "B04"
+completed_tasks: ["T010", "T011"]
+blocked_tasks: []
+required_endpoints: []
+files_changed:
+  T010:
+    - file: "tests/contract/test_channel_adapter.py"
+      change_type: "modified"
+      description: "Adds coverage for interactive list replies; existing text, button, and media parsing is verified"
+  T011:
+    - file: "src/knowledge/__init__.py"
+      change_type: "created"
+      description: "Initializes the knowledge services package"
+    - file: "src/knowledge/faq.py"
+      change_type: "created"
+      description: "Adds deterministic, evidence-ranked FAQ lookup with cited answers and safe abstention"
+    - file: "tests/unit/test_faq_grounding.py"
+      change_type: "created"
+      description: "Covers grounded results, citation, out-of-scope questions, ambiguity, and normalization"
+    - file: "README.md"
+      change_type: "modified"
+      description: "Documents FAQ grounding and human fallback behavior"
+upstream_artifacts_consumed:
+  T010:
+    - artifact: "plan.md"
+      used_for: "Inbound text, interactive replies, and media acceptance criteria"
+    - artifact: "Automação de Atendimento via WhatsApp Documento de Requisitos e Especificações.pdf"
+      used_for: "RF-05 message type coverage"
+  T011:
+    - artifact: "plan.md"
+      used_for: "FAQ title citation and unsupported-question fallback behavior"
+    - artifact: "Automação de Atendimento via WhatsApp Documento de Requisitos e Especificações.pdf"
+      used_for: "RF-09 and RN-07 grounding requirements"
+evidence_mapping:
+  T010:
+    - upstream: "plan.md#3.2 Saudação, menus e tipos de mensagem"
+      output: "src/channel/adapter.py and tests/contract/test_channel_adapter.py"
+      evidence: "All 10 channel adapter contract tests pass, including list_reply"
+  T011:
+    - upstream: "plan.md#3.3 FAQ"
+      output: "src/knowledge/faq.py"
+      evidence: "Six unit tests verify source citation, no-evidence abstention, ambiguity rejection, and accent/plural normalization"
+traceability:
+  - requirement: "RF-05"
+    plan_item: "3.2"
+    task: "T010"
+    files: ["src/channel/adapter.py", "tests/contract/test_channel_adapter.py"]
+    status: "completed"
+  - requirement: "RF-09"
+    plan_item: "3.3"
+    task: "T011"
+    files: ["src/knowledge/faq.py", "tests/unit/test_faq_grounding.py"]
+    status: "completed"
+  - requirement: "RN-07"
+    plan_item: "3.3"
+    task: "T011"
+    files: ["src/knowledge/faq.py", "tests/unit/test_faq_grounding.py"]
+    status: "completed"
+protocol_violation: false
+errors: []
+warnings: []
+test_results:
+  T010:
+    command: "python -m pytest tests/contract/test_channel_adapter.py"
+    passed: 10
+    failed: 0
+    skipped: 0
+    failures: []
+  T011:
+    command: "python -m pytest tests/unit/test_faq_grounding.py"
+    passed: 6
+    failed: 0
+    skipped: 0
+    failures: []

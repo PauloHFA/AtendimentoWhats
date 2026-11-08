@@ -210,23 +210,23 @@ whatsapp-atendimento/
 
 ### Fase 1 — Setup
 
-- [ ] T001 [Plan:1.1] Criar `pyproject.toml`, `src/main.py`, configuração FastAPI, `.env.example`, `docker-compose.yml` e documentação inicial de execução local.
-- [ ] T002 [P] [Plan:1.1] Criar workflow de CI em `.github/workflows/ci.yml` para pytest, lint e tipagem, sem segredos de canal.
-- [ ] T003 [Plan:1.2] Implementar `src/channel/adapter.py` e `src/channel/simulator.py`, incluindo marcação como lida/indicador de digitação quando disponíveis, com payloads locais e testes em `tests/contract/test_channel_adapter.py`.
+- [x] T001 [Plan:1.1] Criar `pyproject.toml`, `src/main.py`, configuração FastAPI, `.env.example`, `docker-compose.yml` e documentação inicial de execução local.
+- [x] T002 [P] [Plan:1.1] Criar workflow de CI em `.github/workflows/ci.yml` para pytest, lint e tipagem, sem segredos de canal.
+- [x] T003 [Plan:1.2] Implementar `src/channel/adapter.py` e `src/channel/simulator.py`, incluindo marcação como lida/indicador de digitação quando disponíveis, com payloads locais e testes em `tests/contract/test_channel_adapter.py`.
 
 ### Fase 2 — Fundacional
 
-- [ ] T004 [Plan:2.1] Implementar modelos e migrações para contatos, conversas, mensagens, tickets, agendamentos, artigos, eventos e contadores em `src/db/`.
-- [ ] T005 [Plan:2.2] Implementar GET/POST `/webhook`, validação HMAC, limites do payload e testes em `src/api/webhook.py` e `tests/contract/test_webhook.py`.
-- [ ] T006 [Plan:2.2] Persistir evento antes do enfileiramento, deduplicar `wamid` e registrar resultado em `src/api/webhook.py`, `src/db/` e `tests/integration/test_webhook_idempotency.py`.
-- [ ] T007 [Plan:2.3] Implementar worker Celery, backoff, reprocessamento e atualização de status de entrega em `src/worker.py` e `tests/integration/test_worker_retries.py`.
+- [x] T004 [Plan:2.1] Implementar modelos e migrações para contatos, conversas, mensagens, tickets, agendamentos, artigos, eventos e contadores em `src/db/`.
+- [x] T005 [Plan:2.2] Implementar GET/POST `/webhook`, validação HMAC, limites do payload e testes em `src/api/webhook.py` e `tests/contract/test_webhook.py`.
+- [x] T006 [Plan:2.2] Persistir evento antes do enfileiramento, deduplicar `wamid` e registrar resultado em `src/api/webhook.py`, `src/db/` e `tests/integration/test_webhook_idempotency.py`.
+- [x] T007 [Plan:2.3] Implementar worker Celery, backoff, reprocessamento e atualização de status de entrega em `src/worker.py` e `tests/integration/test_worker_retries.py`.
 
 ### Fase 3 — US1: Primeiro contato e FAQ
 
-- [ ] T008 [Plan:3.1] Implementar estados e transições da conversa, expiração configurável e limite de duas falhas em `src/flows/state_machine.py` e `tests/unit/test_state_machine.py`.
-- [ ] T009 [US1] [Plan:3.2] Criar saudação, aviso do bot, consentimento inicial e menus interativos em `src/flows/` e `tests/dialogs/test_first_contact.py`.
-- [ ] T010 [P] [US1] [Plan:3.2] Tratar textos, botões, listas e tipos de mídia em `src/channel/` e `tests/contract/test_inbound_message_types.py`.
-- [ ] T011 [US1] [Plan:3.3] Implementar busca FAQ com citação do título e fallback para humano em `src/knowledge/` e `tests/unit/test_faq_grounding.py`.
+- [x] T008 [Plan:3.1] Implementar estados e transições da conversa, expiração configurável e limite de duas falhas em `src/flows/state_machine.py` e `tests/unit/test_state_machine.py`.
+- [x] T009 [US1] [Plan:3.2] Criar saudação, aviso do bot, consentimento inicial e menus interativos em `src/flows/` e `tests/dialogs/test_first_contact.py`.
+- [x] T010 [P] [US1] [Plan:3.2] Tratar textos, botões, listas e tipos de mídia em `src/channel/` e `tests/contract/test_inbound_message_types.py`.
+- [x] T011 [US1] [Plan:3.3] Implementar busca FAQ com citação do título e fallback para humano em `src/knowledge/` e `tests/unit/test_faq_grounding.py`.
 - [ ] T012 [US1] [Plan:3.3] Criar diálogos dourados de primeiro contato, FAQ, ausência de resposta e fora de escopo em `tests/dialogs/`.
 
 ### Fase 4 — US2: Pedidos, agendamentos e consentimento

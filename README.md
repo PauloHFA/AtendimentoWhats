@@ -37,6 +37,7 @@ O `.env.example` contém apenas valores locais de desenvolvimento. Não use esse
 - `SimulatorAdapter` analisa payloads locais no formato de webhook e captura mensagens de saída sem chamar a Meta.
 - A máquina de estados mantém a conversa no bot ou no atendimento humano, sugere handoff após duas falhas seguidas e aplica expiração configurável.
 - O primeiro contato identifica o bot e apresenta opções interativas para consentimento ou atendimento humano.
+- O FAQ determinístico busca evidências em artigos e cita o título da fonte; perguntas sem cobertura suficiente ou com resultados ambíguos devem seguir para atendimento humano.
 - O webhook verifica o token de inscrição, valida HMAC `X-Hub-Signature-256`, limita o tamanho e a taxa de requisições via Redis e persiste eventos antes de enfileirá-los.
 - O worker grava mensagens recebidas com deduplicação por `wamid`; as migrações criam as tabelas de contatos, conversas, mensagens e demais domínios.
 

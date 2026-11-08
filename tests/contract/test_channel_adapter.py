@@ -32,6 +32,13 @@ def test_simulator_parses_recorded_text_payload() -> None:
             "faq",
             None,
         ),
+        (
+            "interactive",
+            {"list_reply": {"id": "hours", "title": "Horários"}},
+            "interactive",
+            "hours",
+            None,
+        ),
         ("image", {"id": "media-1"}, "image", None, "media-1"),
         ("audio", {"id": "media-2"}, "audio", None, "media-2"),
         ("document", {"id": "media-3"}, "document", None, "media-3"),
