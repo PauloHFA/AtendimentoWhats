@@ -1,0 +1,191 @@
+batch_id: "B03"
+completed_tasks: ["T004", "T005", "T006", "T007"]
+blocked_tasks: []
+required_endpoints: []
+files_changed:
+  T004:
+    - file: "src/db/models.py"
+      change_type: "created"
+      description: "Typed SQLAlchemy models for contact, conversation, messages, tickets, appointments, articles, webhook events, and usage counters"
+    - file: "src/db/session.py"
+      change_type: "created"
+      description: "Database engine and session dependency for PostgreSQL and SQLite"
+    - file: "src/config.py"
+      change_type: "created"
+      description: "Typed environment settings and protected Meta secrets"
+    - file: "alembic.ini"
+      change_type: "created"
+      description: "Alembic migration configuration"
+    - file: "migrations/env.py"
+      change_type: "created"
+      description: "Connects Alembic to application model metadata and environment URL"
+    - file: "migrations/versions/0001_initial_schema.py"
+      change_type: "created"
+      description: "Reversible initial schema migration"
+    - file: "tests/integration/test_models.py"
+      change_type: "created"
+      description: "Schema, relationship, uniqueness, and persistence worker tests"
+  T005:
+    - file: "src/api/webhook.py"
+      change_type: "created"
+      description: "Meta GET challenge verification and signed POST event ingress"
+    - file: "src/api/rate_limit.py"
+      change_type: "created"
+      description: "Redis-backed atomic webhook rate limiter"
+    - file: "src/api/__init__.py"
+      change_type: "created"
+      description: "API package"
+    - file: "src/main.py"
+      change_type: "modified"
+      description: "Registers webhook routes"
+    - file: "src/config.py"
+      change_type: "modified"
+      description: "Adds configurable webhook body and request rate limits"
+    - file: ".env.example"
+      change_type: "modified"
+      description: "Documents webhook request limits"
+    - file: "docker-compose.yml"
+      change_type: "modified"
+      description: "Runs migrations before API startup and configures limits"
+    - file: "Dockerfile"
+      change_type: "modified"
+      description: "Includes Alembic configuration and migration files in the image"
+    - file: "tests/contract/test_webhook.py"
+      change_type: "created"
+      description: "HTTP tests for signature, challenge, payload limits, rate limiting, and error behavior"
+    - file: "pyproject.toml"
+      change_type: "modified"
+      description: "Declares Redis client used by the shared rate limiter"
+  T006:
+    - file: "src/api/webhook.py"
+      change_type: "modified"
+      description: "Persists callbacks before queue publication and deduplicates messages and status transitions"
+    - file: "src/tasks.py"
+      change_type: "created"
+      description: "Provides the Celery event dispatch function"
+    - file: "src/db/models.py"
+      change_type: "modified"
+      description: "Adds a separate unique callback deduplication key; wamid remains repeatable for status updates"
+    - file: "migrations/versions/0001_initial_schema.py"
+      change_type: "modified"
+      description: "Adds callback deduplication index without incorrectly uniquing wamid"
+    - file: "tests/contract/test_webhook.py"
+      change_type: "modified"
+      description: "Covers duplicate retries, batch messages, distinct status updates, and queue recovery"
+  T007:
+    - file: "src/tasks.py"
+      change_type: "modified"
+      description: "Processes durable webhook events idempotently, persists inbound messages, retries database failures, and updates delivery status"
+    - file: "src/celery_app.py"
+      change_type: "modified"
+      description: "Includes the task module so Celery workers register event processing tasks"
+    - file: "tests/integration/test_models.py"
+      change_type: "modified"
+      description: "Verifies worker replay idempotency, status updates, and retry configuration"
+    - file: "README.md"
+      change_type: "modified"
+      description: "Documents migrations, webhook security, rate limiting, and worker behavior"
+upstream_artifacts_consumed:
+  T004:
+    - artifact: "plan.md"
+      used_for: "Section 12 domain model and persistence requirements"
+    - artifact: "Automação de Atendimento via WhatsApp Documento de Requisitos e Especificações.pdf"
+      used_for: "Data model in section 12 and requirements RF-04, RF-06, RF-12, RF-15"
+  T005:
+    - artifact: "plan.md"
+      used_for: "GET/POST webhook contract, HMAC verification, size/rate limiting, and response behavior"
+    - artifact: "Automação de Atendimento via WhatsApp Documento de Requisitos e Especificações.pdf"
+      used_for: "Requirements RF-01, RF-02, RNF-01, RNF-04 and acceptance criteria CA-01/CA-02"
+  T006:
+    - artifact: "plan.md"
+      used_for: "Durable event persistence, message deduplication, and queueing requirements"
+  T007:
+    - artifact: "plan.md"
+      used_for: "Asynchronous processing, retry/backoff, idempotency, and delivery status updates"
+evidence_mapping:
+  T004:
+    - upstream: "plan.md#2.1 Persistência e migrações"
+      output: "src/db/models.py and migrations/versions/0001_initial_schema.py"
+      evidence: "Alembic upgrade head, alembic check, and downgrade base all passed against a temporary SQLite database"
+  T005:
+    - upstream: "plan.md#2.2 Entrada segura de eventos"
+      output: "src/api/webhook.py"
+      evidence: "Webhook contract suite covers valid and invalid signatures, challenge, body limit, rate limit, and 503 configuration/queue paths"
+  T006:
+    - upstream: "plan.md#2.2 Entrada segura de eventos"
+      output: "src/api/webhook.py and src/tasks.py"
+      evidence: "Webhook tests prove durable commit before queue, deduplicated replay, batched wamids, separate status keys, and retry after queue outage"
+  T007:
+    - upstream: "plan.md#2.3 Worker, retentativas e status"
+      output: "src/tasks.py"
+      evidence: "Integration tests prove inbound persistence/replay idempotency, delivery status update, and configured backoff retries"
+traceability:
+  - requirement: "RF-04"
+    plan_item: "2.1"
+    task: "T004"
+    files: ["src/db/models.py", "migrations/versions/0001_initial_schema.py"]
+    status: "completed"
+  - requirement: "RF-01"
+    plan_item: "2.2"
+    task: "T005"
+    files: ["src/api/webhook.py", "tests/contract/test_webhook.py"]
+    status: "completed"
+  - requirement: "RF-02"
+    plan_item: "2.2"
+    task: "T005"
+    files: ["src/api/webhook.py", "tests/contract/test_webhook.py"]
+    status: "completed"
+  - requirement: "RF-03"
+    plan_item: "2.3"
+    task: "T007"
+    files: ["src/tasks.py", "src/api/webhook.py"]
+    status: "completed"
+  - requirement: "RNF-02"
+    plan_item: "2.3"
+    task: "T007"
+    files: ["src/tasks.py", "tests/integration/test_models.py"]
+    status: "completed"
+  - requirement: "RN-10"
+    plan_item: "2.2"
+    task: "T006"
+    files: ["src/api/webhook.py", "src/db/models.py"]
+    status: "completed"
+protocol_violation: false
+errors: []
+warnings:
+  - severity: MEDIUM
+    message: "Docker daemon is unavailable, so real PostgreSQL and Redis Compose startup could not be exercised; SQLite tests and Compose syntax validation passed."
+test_results:
+  T004:
+    command: "python -m pytest tests/integration/test_models.py; python -m alembic upgrade head; python -m alembic check; python -m alembic downgrade base"
+    passed: 7
+    failed: 0
+    skipped: 0
+    failures: []
+  T005:
+    command: "python -m pytest tests/contract/test_webhook.py"
+    passed: 12
+    failed: 0
+    skipped: 0
+    failures: []
+  T006:
+    command: "python -m pytest tests/contract/test_webhook.py"
+    passed: 12
+    failed: 0
+    skipped: 0
+    failures: []
+  T007:
+    command: "python -m pytest tests/integration/test_models.py"
+    passed: 9
+    failed: 0
+    skipped: 0
+    failures: []
+endpoint_probes:
+  - method: GET
+    path: "/webhook?hub.mode=subscribe&hub.verify_token=<configured>&hub.challenge=probe"
+    status: 200
+    result: "PASS (FastAPI TestClient with configured verification token)"
+  - method: POST
+    path: "/webhook"
+    status: 200
+    result: "PASS (valid X-Hub-Signature-256; event persisted and queued via test adapter)"

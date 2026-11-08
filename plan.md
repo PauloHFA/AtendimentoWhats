@@ -72,12 +72,12 @@ Os incrementos abaixo seguem os Sprints 0–7 sugeridos no documento. A duraçã
 #### 2.1 Persistência e migrações
 - **Requisitos**: RF-04, RF-06, RF-12, RF-15, RNF-02
 - **Entradas de desenho**: seção 12
-- **Descrição**: implementar modelos e migrações para contatos, conversas, mensagens, tickets, agendamentos, artigos, eventos de webhook e contadores de uso. Definir unicidade de `wamid` e operações transacionais necessárias à idempotência.
+- **Descrição**: implementar modelos e migrações para contatos, conversas, mensagens, tickets, agendamentos, artigos, eventos de webhook e contadores de uso. Aplicar unicidade de `wamid` às mensagens e chave de deduplicação aos eventos: atualizações de status (`sent`, `delivered`, `read`) reutilizam o mesmo `wamid` e não podem ser descartadas como duplicatas.
 
 #### 2.2 Entrada segura de eventos
 - **Requisitos**: RF-01, RF-02, RF-03, RF-04, RF-22, RNF-01, RNF-02, RNF-04, RN-10
 - **Entradas de desenho**: seções 7, 9, 10.1, 11 e 14
-- **Descrição**: implementar verificação GET, assinatura HMAC do POST, limitação de tamanho/taxa, gravação durável do evento, deduplicação e enfileiramento. Responder rapidamente apenas após o evento estar registrado de forma segura para processamento.
+- **Descrição**: implementar verificação GET, assinatura HMAC do POST, limites de tamanho e taxa compartilhados via Redis, gravação durável do evento, deduplicação de mensagens/status e enfileiramento. Responder rapidamente apenas após o evento estar registrado de forma segura para processamento.
 
 #### 2.3 Worker, retentativas e status
 - **Requisitos**: RF-03, RNF-02, RN-10

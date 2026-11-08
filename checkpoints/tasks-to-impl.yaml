@@ -5,10 +5,10 @@ metadata:
 
 summary:
   total_tasks: 29
-  completed_tasks: 5
+  completed_tasks: 9
   in_progress_tasks: 0
-  pending_tasks: 24
-  completion_percentage: 17.2
+  pending_tasks: 20
+  completion_percentage: 31.0
 
 tasks:
   - task_id: "T001"
@@ -193,24 +193,156 @@ tasks:
       plan_item: "3.2"
       requirements: ["RF-07", "RN-05"]
       full_trace: "RF-07,RN-05 → Phase-3.2 → T009 → src/flows/welcome.py"
-
-pending_tasks:
   - task_id: "T004"
     description: "Implementar modelos e migrações"
-    blocked_by: []
-    priority: "P1"
+    status: "completed"
+    implementation:
+      files_changed:
+        - file: "src/db/models.py"
+          changes:
+            - change_type: "added"
+              description: "Modelos tipados para os oito domínios de persistência"
+        - file: "src/db/session.py"
+          changes:
+            - change_type: "added"
+              description: "Engine SQLAlchemy, sessões e suporte SQLite para testes locais"
+        - file: "src/config.py"
+          changes:
+            - change_type: "added"
+              description: "Configuração tipada por ambiente com segredos protegidos"
+        - file: "alembic.ini"
+          changes:
+            - change_type: "added"
+              description: "Configuração do Alembic"
+        - file: "migrations/env.py"
+          changes:
+            - change_type: "added"
+              description: "Migrações conectadas ao metadata dos modelos"
+        - file: "migrations/versions/0001_initial_schema.py"
+          changes:
+            - change_type: "added"
+              description: "Migração inicial reversível das tabelas e índices"
+        - file: "tests/integration/test_models.py"
+          changes:
+            - change_type: "added"
+              description: "Testes dos modelos, relacionamentos, unicidade e pipeline de persistência"
+    verification:
+      build_passed: true
+      test_results:
+        command: "python -m pytest tests/integration/test_models.py; python -m alembic upgrade head; python -m alembic check; python -m alembic downgrade base"
+        passed: 9
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: "Migrações e paridade de schema verificadas em SQLite temporário; PostgreSQL real aguarda Docker funcional."
+    upstream_trace:
+      plan_item: "2.1"
+      requirements: ["RF-04", "RF-06", "RF-12", "RF-15", "RNF-02"]
+      full_trace: "RF-04,RF-06,RF-12,RF-15,RNF-02 → Phase-2.1 → T004 → src/db/ e migrations/"
   - task_id: "T005"
     description: "Implementar webhook e validação de assinatura"
-    blocked_by: ["T004"]
-    priority: "P1"
+    status: "completed"
+    implementation:
+      files_changed:
+        - file: "src/api/webhook.py"
+          changes:
+            - change_type: "added"
+              description: "Verificação GET, HMAC de POST, validação do payload e limite de tamanho"
+        - file: "src/api/rate_limit.py"
+          changes:
+            - change_type: "added"
+              description: "Rate limit compartilhado via Redis com chave de cliente mascarada"
+        - file: "src/main.py"
+          changes:
+            - change_type: "modified"
+              description: "Registra as rotas do webhook na aplicação"
+        - file: "src/config.py"
+          changes:
+            - change_type: "modified"
+              description: "Adiciona limites de payload e taxa configuráveis"
+        - file: "tests/contract/test_webhook.py"
+          changes:
+            - change_type: "added"
+              description: "Testes de challenge, assinatura, tamanho e rate limit"
+    verification:
+      build_passed: true
+      test_results:
+        command: "python -m pytest tests/contract/test_webhook.py"
+        passed: 12
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: "Testes HTTP executados com TestClient e rate limiter isolado; integração Redis/PostgreSQL requer Docker ativo."
+    upstream_trace:
+      plan_item: "2.2"
+      requirements: ["RF-01", "RF-02", "RF-04", "RNF-01", "RNF-04", "RN-10"]
+      full_trace: "RF-01,RF-02,RF-04,RNF-01,RNF-04,RN-10 → Phase-2.2 → T005 → src/api/webhook.py"
   - task_id: "T006"
     description: "Persistir, deduplicar e enfileirar eventos"
-    blocked_by: ["T004", "T005"]
-    priority: "P1"
+    status: "completed"
+    implementation:
+      files_changed:
+        - file: "src/api/webhook.py"
+          changes:
+            - change_type: "modified"
+              description: "Grava callbacks antes do ACK, deduplica mensagens/status e publica tarefas"
+        - file: "src/db/models.py"
+          changes:
+            - change_type: "modified"
+              description: "Adiciona chave idempotente por mensagem ou atualização de status"
+        - file: "migrations/versions/0001_initial_schema.py"
+          changes:
+            - change_type: "modified"
+              description: "Cria índice de deduplicação separado do wamid"
+        - file: "tests/contract/test_webhook.py"
+          changes:
+            - change_type: "modified"
+              description: "Verifica replay, callback com lote, múltiplos estados e publicação retomável"
+    verification:
+      build_passed: true
+      test_results:
+        command: "python -m pytest tests/contract/test_webhook.py"
+        passed: 12
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: "Falha temporária de publicação devolve 503 após persistir o evento; o reenvio Meta pode retomar a publicação."
+    upstream_trace:
+      plan_item: "2.2"
+      requirements: ["RF-03", "RF-04", "RNF-02", "RN-10"]
+      full_trace: "RF-03,RF-04,RNF-02,RN-10 → Phase-2.2 → T006 → webhook_events e Celery dispatch"
   - task_id: "T007"
     description: "Implementar worker, retries e status de entrega"
-    blocked_by: ["T006"]
-    priority: "P1"
+    status: "completed"
+    implementation:
+      files_changed:
+        - file: "src/tasks.py"
+          changes:
+            - change_type: "added"
+              description: "Worker idempotente com retry/backoff e persistência de mensagem/conversa"
+        - file: "src/celery_app.py"
+          changes:
+            - change_type: "modified"
+              description: "Registra src.tasks para o processo worker carregar as tarefas"
+        - file: "tests/integration/test_models.py"
+          changes:
+            - change_type: "modified"
+              description: "Verifica redelivery, persistência de mensagem e atualização de status"
+    verification:
+      build_passed: true
+      test_results:
+        command: "python -m pytest tests/integration/test_models.py"
+        passed: 9
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: "Retry automático configurado para erros SQLAlchemy com backoff exponencial e limite de cinco tentativas."
+    upstream_trace:
+      plan_item: "2.3"
+      requirements: ["RF-03", "RNF-02", "RN-10"]
+      full_trace: "RF-03,RNF-02,RN-10 → Phase-2.3 → T007 → src/tasks.py"
+
+pending_tasks:
   - task_id: "T010"
     description: "Tratar tipos de entrada"
     blocked_by: ["T003"]
@@ -330,11 +462,39 @@ traceability_chain:
     tasks: ["T009"]
     files: ["src/flows/welcome.py"]
     status: "complete"
+  - chain_id: "TRACE-RF-04-T004"
+    requirement: "RF-04"
+    plan_phase: "Phase-2"
+    plan_item: "2.1"
+    tasks: ["T004"]
+    files: ["src/db/models.py", "migrations/versions/0001_initial_schema.py"]
+    status: "complete"
+  - chain_id: "TRACE-RF-01-T005"
+    requirement: "RF-01"
+    plan_phase: "Phase-2"
+    plan_item: "2.2"
+    tasks: ["T005"]
+    files: ["src/api/webhook.py", "tests/contract/test_webhook.py"]
+    status: "complete"
+  - chain_id: "TRACE-RF-03-T006"
+    requirement: "RF-03"
+    plan_phase: "Phase-2"
+    plan_item: "2.2"
+    tasks: ["T006"]
+    files: ["src/api/webhook.py", "src/tasks.py"]
+    status: "complete"
+  - chain_id: "TRACE-RNF-02-T007"
+    requirement: "RNF-02"
+    plan_phase: "Phase-2"
+    plan_item: "2.3"
+    tasks: ["T007"]
+    files: ["src/tasks.py", "src/celery_app.py"]
+    status: "complete"
 
 validation:
   passed: true
   errors: []
   warnings:
-    - "Docker Compose foi validado, mas os containers não foram iniciados porque o daemon Docker está indisponível."
-    - "O registro persistente de consentimento será implementado em T015."
+    - "Docker Compose foi validado, mas PostgreSQL e Redis não foram iniciados porque o daemon Docker está indisponível."
+    - "A validação de persistência e deduplicação foi feita com SQLite; fidelity de concorrência PostgreSQL/Redis permanece por verificar no Compose."
   blocking_issues: []
