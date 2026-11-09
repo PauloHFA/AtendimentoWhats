@@ -1,16 +1,185 @@
 # Atendimento via WhatsApp
 
-Projeto de automação de atendimento usando a WhatsApp Cloud API oficial. O desenvolvimento começa pelo simulador local; nenhuma credencial da Meta é necessária para iniciar a API.
+Protótipo de atendimento automatizado que recebe eventos no formato de webhook
+da WhatsApp Cloud API e permite experimentar jornadas em um **simulador local**.
+Este documento é para pessoas desenvolvedoras, responsáveis por integrações e
+demais integrantes que queiram entender o estágio do projeto.
+
+**Estágio atual: desenvolvimento, não pronto para produção.** O projeto recebe
+e processa eventos de teste, mas não envia mensagens para o WhatsApp nem entrega
+conversas a atendentes. Não use dados reais no simulador.
+
+## O que já funciona e o que falta
+
+| Área | Estado | Detalhes |
+|---|---|---|
+| API e webhook | Funciona localmente | `/health`, verificação de assinatura HMAC, limite de requisições, persistência e deduplicação de eventos. |
+| Worker e simulador | Funciona localmente | Processa eventos da fila, registra mensagens e gera respostas simuladas no banco quando habilitado. |
+| Jornadas | Funciona no simulador | Saudação, aceite de atendimento, FAQ, consulta de pedidos, agendamento e consentimento de marketing, com as limitações abaixo. |
+| Expediente | Parcial | Configuração opcional informa quando a solicitação de humano ocorre fora do horário; não restringe reservas nem cria fila. |
+| Handoff | Parcial | Há serviço interno de tickets e transição de posse, mas ele não está conectado à jornada, a uma interface ou ao Chatwoot. |
+| Janela de mensagens e templates | Parcial | A política e `GuardedChannel` existem, mas não protegem um fluxo real de envio. |
+| Contagem de uso | Parcial | Serviço interno idempotente para mensagens confirmadas, ainda não conectado a envios ou callbacks reais. |
+| Máquina de estados | Parcial | Existe uma classe isolada com expiração e sugestão de handoff após falhas. O worker utiliza seus próprios estados da jornada e não usa essa classe. |
+| WhatsApp e atendimento humano reais | Pendente | Faltam o adaptador de envio Meta, integração Chatwoot, interface de atendente e validação em sandbox. |
+| Operação e segurança | Pendente | Faltam controles completos de privacidade, retenção, métricas e validações para produção. |
+
+O [plano de implementação](plan.md) contém os requisitos e etapas; o
+[acompanhamento](checkpoints/tasks-to-impl.yaml) registra o progresso por tarefa.
+Uma tarefa em andamento não significa que a funcionalidade esteja pronta para
+uso real.
+
+## Como o processamento funciona
+
+```text
+POST /webhook
+    → valida assinatura, tamanho e limite no Redis
+    → grava o evento no banco e publica sua referência no Celery
+    → worker lê o evento e registra contato, conversa e mensagem
+    → se o simulador estiver habilitado, gera respostas no banco
+```
+
+1. [`src/api/webhook.py`](src/api/webhook.py) valida o corpo e a assinatura,
+   persiste em `webhook_events` e solicita a publicação na fila. Se a publicação
+   falhar, retorna erro após persistir o evento; um reenvio pode tentar novamente.
+2. Redis fornece a fila e o controle de taxa; o Celery executa o worker definido
+   em [`src/tasks.py`](src/tasks.py).
+3. O worker usa [`SimulatorAdapter`](src/channel/simulator.py) para interpretar
+   o payload, deduplica mensagens pelo identificador do canal e persiste os dados.
+4. Com `SIMULATOR_BUSINESS_NAME` definido, a jornada em
+   [`src/flows/faq_journey.py`](src/flows/faq_journey.py) registra saídas em
+   `messages`, com `direction=OUTBOUND` e `delivery_status=SIMULATED`.
+   **Essas saídas não são enviadas ao WhatsApp.**
+
+O envio real, a política de saída protegida e o atendimento humano não estão
+conectados a esse fluxo.
 
 ## Requisitos
 
-- Python 3.12
-- Docker Compose (para subir API, worker, PostgreSQL e Redis)
+- Python 3.12 para desenvolvimento e testes locais.
+- Docker Desktop com Docker Compose para a opção com contêineres.
+- Para rodar API e worker sem Docker: Redis acessível; SQLite é usado por padrão
+  para desenvolvimento local. O Compose usa PostgreSQL e Redis em contêineres.
 
-## Desenvolvimento local
+Os exemplos abaixo usam PowerShell no Windows, executado na raiz do repositório.
+
+## Executar com Docker Compose
+
+1. Copie a configuração de exemplo, se ainda não existir um `.env`:
+
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+
+   Não sobrescreva um `.env` existente sem revisar seu conteúdo.
+
+2. No `.env`, mantenha `POSTGRES_PASSWORD` definido e, para o tutorial de
+   simulação abaixo, ajuste estes valores **somente para teste local**:
+
+   ```text
+   META_APP_SECRET=segredo-local-de-teste
+   SIMULATOR_BUSINESS_NAME=Loja Exemplo
+   ```
+
+   Esse segredo fictício é usado para assinar o webhook de teste, não é uma
+   credencial da Meta. Com `SIMULATOR_BUSINESS_NAME` vazio, o worker não gera
+   respostas simuladas.
+
+3. Inicie os serviços e verifique a API:
+
+   ```powershell
+   docker compose up --build -d
+   docker compose ps
+   Invoke-RestMethod http://localhost:8000/health
+   ```
+
+   A resposta esperada é `{"status":"ok"}`. A documentação das rotas está em
+   `http://localhost:8000/docs`. A API aplica as migrações na inicialização.
+
+Após alterar `.env`, execute `docker compose up -d` novamente para recriar os
+serviços cuja configuração mudou. `docker compose down` para os serviços; os
+volumes de PostgreSQL e Redis permanecem.
+
+## Experimentar a jornada simulada
+
+Este tutorial usa a API e o banco do Compose, não uma interface de chat.
+Execute-o após os passos anteriores, no mesmo terminal PowerShell. A função
+gera um identificador novo para cada mensagem e assina os bytes exatos do JSON.
+O segredo deve ser igual ao `META_APP_SECRET` configurado no `.env`.
 
 ```powershell
-Copy-Item .env.example .env
+$appSecret = 'segredo-local-de-teste'
+$waId = '1555' + [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+
+function Send-SimulatedMessage([string] $text) {
+    $message = @{
+        id = 'local.' + [guid]::NewGuid().ToString()
+        from = $waId
+        timestamp = [string][DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+        type = 'text'
+        text = @{ body = $text }
+    }
+    $payload = @{
+        entry = @(@{
+            changes = @(@{
+                field = 'messages'
+                value = @{ messages = @($message) }
+            })
+        })
+    }
+    $json = ConvertTo-Json -InputObject $payload -Depth 20 -Compress
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($json)
+    $key = [System.Text.Encoding]::UTF8.GetBytes($appSecret)
+    $hmac = [System.Security.Cryptography.HMACSHA256]::new($key)
+    try {
+        $signature = 'sha256=' + (
+            [BitConverter]::ToString($hmac.ComputeHash($bytes)).Replace('-', '').ToLowerInvariant()
+        )
+    } finally {
+        $hmac.Dispose()
+    }
+    Invoke-RestMethod -Method Post -Uri 'http://localhost:8000/webhook' `
+        -Headers @{ 'X-Hub-Signature-256' = $signature } `
+        -ContentType 'application/json' -Body $bytes
+}
+
+Send-SimulatedMessage 'Oi'
+```
+
+O HTTP deve retornar `status: accepted`: isso confirma a aceitação do evento,
+**não** que o worker já terminou. Aguarde alguns segundos e consulte as
+mensagens deste contato fictício:
+
+```powershell
+$sql = "SELECT m.direction, m.delivery_status, m.content FROM messages m JOIN conversations c ON c.id = m.conversation_id JOIN contacts p ON p.id = c.contact_id WHERE p.wa_id = '$waId' ORDER BY m.created_at, m.id;"
+docker compose exec -T db psql -U atendimento -d atendimento -c $sql
+```
+
+Devem aparecer a mensagem `INBOUND` e duas mensagens `OUTBOUND`/`SIMULATED`:
+uma apresentação e um menu de aceite. Se as saídas ainda não aparecerem,
+repita a consulta e verifique `docker compose logs worker`.
+
+Depois que a saudação aparecer, continue usando a mesma função e consulte o
+banco novamente após cada mensagem:
+
+```powershell
+Send-SimulatedMessage 'ACEITO'
+```
+
+O aceite apenas permite continuar o atendimento; ele **não** autoriza marketing.
+Uma vez recebida a resposta de aceite, experimente `PEDIDO`, `AGENDAMENTOS` ou
+`AGENDAR Consulta | 01/01/2035 10:00` (use uma data futura). Para não depender
+da ordem assíncrona da fila, aguarde a resposta de cada etapa antes da próxima.
+`MARKETING` abre uma pergunta com botões; para responder aos botões é necessário
+enviar um payload interativo com o ID correspondente, pois esta função envia
+apenas texto. Não há uma interface visual de chat implementada.
+
+## Executar sem Docker
+
+Para instalar e executar os testes, não é necessário iniciar Redis ou fornecer
+credenciais. Estes comandos usam o Python instalado no Windows:
+
+```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev]"
@@ -18,117 +187,136 @@ python -m alembic upgrade head
 python -m pytest
 ```
 
-## Subir os serviços
-
-Após configurar `.env`, execute:
+Fora do Compose, a aplicação **não carrega `.env` automaticamente**. Para
+executar a API e o worker, inicie Redis separadamente em `localhost:6379` e
+execute os comandos seguintes em **cada um de dois terminais** abertos na raiz
+do projeto. Eles configuram valores locais fictícios para ambos os processos:
 
 ```powershell
-docker compose up --build
+.\.venv\Scripts\Activate.ps1
+$env:DATABASE_URL = 'sqlite:///./atendimento.db'
+$env:REDIS_URL = 'redis://localhost:6379/0'
+$env:CELERY_RESULT_BACKEND = 'redis://localhost:6379/1'
+$env:META_APP_SECRET = 'segredo-local-de-teste'
+$env:SIMULATOR_BUSINESS_NAME = 'Loja Exemplo'
 ```
 
-A API fica disponível em `http://localhost:8000`; verifique a inicialização em `http://localhost:8000/health` e consulte a documentação OpenAPI em `http://localhost:8000/docs`.
+No primeiro terminal, aplique as migrações e inicie a API:
 
-O serviço da API executa as migrações Alembic antes de iniciar. No uso fora do Compose, aplique-as com `python -m alembic upgrade head`.
+```powershell
+python -m alembic upgrade head
+python -m uvicorn src.main:app --host 127.0.0.1 --port 8000
+```
 
-O `.env.example` contém apenas valores locais de desenvolvimento. Não use esses valores em ambientes compartilhados ou de produção e nunca inclua tokens reais no repositório.
+No segundo, inicie o worker:
 
-## Componentes implementados
+```powershell
+python -m celery -A src.celery_app:celery_app worker --loglevel=INFO --pool=solo
+```
 
-- `SimulatorAdapter` analisa payloads locais no formato de webhook e captura mensagens de saída sem chamar a Meta.
-- A máquina de estados mantém a conversa no bot ou no atendimento humano, sugere handoff após duas falhas seguidas e aplica expiração configurável.
-- O primeiro contato identifica o bot e apresenta opções interativas para consentimento ou atendimento humano.
-- O FAQ determinístico busca evidências em artigos e cita o título da fonte; perguntas sem cobertura suficiente ou com resultados ambíguos devem seguir para atendimento humano.
-- O webhook verifica o token de inscrição, valida HMAC `X-Hub-Signature-256`, limita o tamanho e a taxa de requisições via Redis e persiste eventos antes de enfileirá-los.
-- O worker grava mensagens recebidas com deduplicação por `wamid`; as migrações criam as tabelas de contatos, conversas, mensagens e demais domínios.
+As variáveis definidas em um terminal não são compartilhadas automaticamente
+com outro. `--pool=solo` é uma opção de desenvolvimento no Windows, não uma
+configuração de produção. O tutorial de envio acima também pode chamar essa
+API, mas a consulta com `docker compose exec` vale apenas para o banco do
+Compose; fora dele, consulte o arquivo SQLite configurado em `DATABASE_URL`.
 
-Para exercitar a jornada de primeiro contato e FAQ no worker, defina
-`SIMULATOR_BUSINESS_NAME` no `.env` com o nome fictício do negócio. O modo é
-desativado por padrão. As respostas são armazenadas em `messages` com
-`direction=OUTBOUND` e `delivery_status=SIMULATED`; **não são enviadas ao
-WhatsApp**. A base de artigos deve ser cadastrada em `knowledge_articles`;
-nenhum conteúdo comercial é criado automaticamente. A escolha de continuar é
-mantida apenas no estado da conversa e não registra opt-in de marketing.
-PARAR, SAIR e CANCELAR registram opt-out no contato mesmo fora do modo
-simulado; o histórico é salvo em `consent_events`. O serviço de registro
-de opt-in de marketing exige uma fonte explícita. No simulador, após aceitar
-o atendimento, digite `MARKETING` para abrir uma pergunta opcional e autorizar
-ou recusar por botão; essa autorização é distinta do aceite de atendimento.
-Uma resposta enviada no mesmo segundo da pergunta é rejeitada por segurança;
-nesse caso, solicite a pergunta novamente. O bloqueio de envios ativos reais
-ainda precisa ser implementado. O
-handoff humano ainda não está disponível; a simulação informa essa limitação.
-Não habilite este modo como integração real com a Meta.
+## Jornadas e componentes internos
 
-Opcionalmente, configure `SIMULATOR_BUSINESS_HOURS` com JSON para informar
-quando um pedido de atendimento humano chega fora do expediente. Por exemplo:
+### FAQ, pedidos e consentimento
+
+- Cadastre artigos em `knowledge_articles`; não há conteúdo comercial
+  pré-cadastrado. O FAQ determinístico cita a fonte e oferece falar com pessoa
+  quando não encontra resposta confiável. O atendimento humano ainda não está
+  disponível e o simulador informa essa limitação.
+- `PEDIDO` solicita um número de 4 a 20 dígitos ASCII e consulta apenas pedidos
+  da tabela `simulated_orders` vinculados ao contato. Não há pedidos
+  pré-cadastrados. Essa associação **não é autenticação suficiente** para dados
+  reais.
+- `MARKETING` abre uma pergunta opcional separada do aceite de atendimento.
+  Uma confirmação recebida no mesmo segundo da pergunta é rejeitada; solicite
+  a pergunta novamente. `PARAR`, `SAIR` e `CANCELAR` registram opt-out mesmo
+  com o simulador desabilitado. O histórico fica em `consent_events`; a
+  prevenção de envios ativos reais ainda precisa ser integrada.
+
+### Agendamentos simulados
+
+Após aceitar o atendimento, envie pelo webhook:
+
+- `AGENDAR Consulta | 01/01/2035 10:00`: cria uma reserva simulada futura.
+- `AGENDAMENTOS`: lista as reservas ativas do contato.
+- `DESMARCAR <código>`: desmarca uma reserva pertencente ao contato.
+
+Horários são em UTC, em intervalos de 30 minutos; conflitos retornam sugestões.
+Os nomes de serviços são livres e não há catálogo, expediente aplicado ou
+integração com agenda real. `CANCELAR` é opt-out, não cancelamento de reserva.
+O serviço em [`src/integrations/appointments.py`](src/integrations/appointments.py)
+usa a transação do chamador.
+
+### Expediente
+
+Opcionalmente, configure `SIMULATOR_BUSINESS_HOURS` como JSON. Exemplo:
 
 ```text
 SIMULATOR_BUSINESS_HOURS={"timezone":"America/Sao_Paulo","intervals":[{"weekday":0,"start":"09:00","end":"18:00"}]}
 ```
 
 O exemplo define apenas segunda-feira; `weekday` vai de 0 (segunda) a 6
-(domingo). Cada intervalo pertence a um único dia, inclui o início e exclui o
-fim. Dias sem intervalos estão fechados; turnos que atravessam a meia-noite
-não são suportados. Informe um fuso IANA disponível no sistema. Sem essa
-configuração, o simulador não presume expediente. Ela não aplica restrições a
-agendamentos nem cria fila de atendimento; não substitui integração real.
+(domingo). O início é incluído e o fim excluído. Dias sem intervalos estão
+fechados; turnos atravessando meia-noite não são suportados. O fuso IANA deve
+estar disponível no sistema. Sem configuração, o simulador não presume
+expediente. Isso apenas adiciona um aviso na solicitação de humano, sem
+restringir agendamentos nem criar fila.
 
-O serviço interno `src/handoff/service.py` permite criar e listar tickets abertos,
-transferir a posse para atendimento humano e devolver a conversa ao bot,
-fechando o ticket na mesma transação. O chamador deve confirmar ou reverter
-essa transação. Em PostgreSQL, as operações serializam pela linha da conversa;
-SQLite é apenas para desenvolvimento e não fornece o mesmo bloqueio. Uma
-conversa sob atendimento humano não expira automaticamente. Esse serviço ainda
-não está conectado ao simulador, a uma interface de atendente ou ao Chatwoot:
-não existe fila operacional nem entrega ao atendente.
-`list_open_tickets` oferece uma consulta paginada, ordenada por criação e ID;
-ela não reserva tickets para atendentes e páginas podem mudar entre consultas.
+### Tickets, política e uso
 
-Na simulação, após aceitar a mensagem inicial, digite `pedido` para consultar
-um pedido cadastrado na tabela `simulated_orders`. O número deve ter de 4 a
-20 dígitos ASCII e o registro deve estar vinculado ao contato simulado.
-Não há pedidos pré-cadastrados. A associação por contato serve apenas à
-simulação e não substitui autenticação para uma integração real.
+- [`src/handoff/service.py`](src/handoff/service.py) cria e lista tickets,
+  transfere a posse e devolve a conversa ao bot na transação do chamador. Em
+  PostgreSQL, as operações serializam pela linha da conversa; SQLite não
+  fornece o mesmo bloqueio. `list_open_tickets` não reserva tickets para
+  atendentes e páginas podem mudar entre consultas. Não existe fila operacional.
+- [`src/flows/message_policy.py`](src/flows/message_policy.py) valida janela,
+  consentimento e catálogo fornecido pelo chamador;
+  [`GuardedChannel`](src/channel/guarded.py) aplica essa política antes de
+  delegar. Nenhum canal real ou worker usa esse adaptador atualmente.
+- [`src/usage/service.py`](src/usage/service.py) conta, por mês UTC, número e
+  categoria, mensagens persistidas com ID do canal e status `SENT`, `DELIVERED`
+  ou `READ`. É idempotente por mensagem e não conta simulações. A categoria e o
+  horário vêm do chamador. É contagem técnica, não cobrança oficial. O serviço
+  não está ligado a envios nem reconcilia mudanças posteriores.
+  O downgrade da migração de contagem é bloqueado se houver registros, para
+  evitar duplicações. Ao excluir mensagens, os registros de idempotência também
+  são excluídos, mas os agregados permanecem; uma futura política de retenção
+  deve considerar essa diferença.
 
-O serviço simulado de agendamentos em `src/integrations/appointments.py`
-oferece horários fixos de 30 minutos, alinhados em UTC, por serviço. Ele cria,
-lista e cancela reservas por contato e sugere alternativas em caso de conflito.
-O chamador deve confirmar ou reverter a transação do banco. Não há catálogo de
-serviços nem horário comercial configurados; a jornada de agendamento no
-simulador aceita comandos após o aceite inicial:
+## Segurança e requisitos antes de produção
 
-- `AGENDAR Consulta | 01/01/2035 10:00` cria uma reserva simulada.
-- `AGENDAMENTOS` lista as reservas ativas do contato.
-- `DESMARCAR <código>` cancela uma reserva do contato.
+- Use apenas dados fictícios e segredos locais neste estágio. Nunca versione
+  credenciais reais; `.env.example` contém valores de desenvolvimento.
+- Não habilite o simulador como canal real. Antes do envio real é necessário
+  conectar o adaptador protegido a contexto e catálogo confiáveis e resolver a
+  sincronização entre opt-out e envio concorrente.
+- Defina autenticação e autorização adequadas para dados de clientes e
+  atendimento. A associação simulada entre pedido e contato não basta.
+- Defina e valide com o responsável por privacidade as políticas de retenção,
+  exclusão, minimização de dados e tratamento de logs; elas não estão completas.
+- Avalie configuração segura de segredos, acesso aos serviços, limites, backup,
+  monitoramento e recuperação. Valide o sistema e as regras vigentes da Meta em
+  sandbox antes de qualquer piloto.
 
-Todos os horários são em UTC, futuros e em intervalos de 30 minutos; em caso
-de conflito são sugeridas alternativas. Os nomes de serviços são livres e a
-disponibilidade é apenas simulada, sem aplicação de horário comercial.
-`CANCELAR` continua sendo opt-out de mensagens ativas e não cancela reservas.
-Não há integração com uma agenda real nem autenticação suficiente para usá-la.
+## Integrações externas pendentes
 
-O componente `src/flows/message_policy.py` verifica a janela de 24 horas,
-o consentimento para mensagens ativas e templates de uma lista aprovada
-fornecida pelo chamador. `GuardedChannel` aplica essa política antes de
-delegar um envio e consulta o contexto novamente a cada mensagem. O worker
-simulado e qualquer futuro canal real **ainda não usam esse adaptador**;
-o catálogo aprovado, o contexto confiável, a contagem de uso e a sincronização
-do opt-out com o envio real precisam ser integrados antes de mensagens reais.
+Estas etapas dependem de serviços, configuração e credenciais que você pode
+providenciar posteriormente:
 
-O serviço interno `src/usage/service.py` registra contagem mensal em UTC por
-número e categoria, de modo idempotente por mensagem e na transação do chamador.
-Aceita apenas mensagens de saída persistidas, com identificador do canal e
-status confirmado (`SENT`, `DELIVERED` ou `READ`); mensagens simuladas não
-contam. A categoria e o horário de envio são responsabilidade do chamador.
-Essa é uma contagem técnica, não uma estimativa de cobrança da Meta. O serviço
-ainda não está conectado a um canal real ou aos callbacks e não reconcilia
-alterações de categoria, falhas posteriores nem dados de faturamento oficiais.
-O downgrade da migração de contagem é bloqueado se houver registros, para
-evitar contagens duplicadas em reprocessamentos. Se mensagens forem excluídas,
-seus registros de idempotência também são excluídos, mas os agregados permanecem;
-qualquer futura política de retenção deve levar isso em conta.
+- Adaptador de envio e recebimento efetivo com a WhatsApp Cloud API, incluindo
+  catálogo de templates e validação no sandbox da Meta.
+- Chatwoot ou outra solução de atendimento humano, com interface de atendente,
+  entrega e devolução de conversas.
+- Sistemas reais de pedidos e agenda, com autenticação e regras comerciais.
+- Integração e conciliação de dados de uso/faturamento oficiais, se necessárias.
 
-Os testes de contrato, fluxo e API rodam com `python -m pytest`; não precisam de Docker nem de credenciais da Meta.
+Ainda há tarefas **internas**, não apenas integrações: fila operacional,
+controles de privacidade, métricas, testes de carga e documentação operacional.
 
 ## Verificações
 
@@ -139,13 +327,16 @@ mypy
 ```
 
 Os testes concorrentes de PostgreSQL são opcionais e gravam dados de teste.
-Para executá-los, use **somente um banco PostgreSQL descartável e isolado**,
-aplique as migrações e forneça a URL desse banco em
-`TEST_POSTGRESQL_DATABASE_URL`:
+Use **somente um banco PostgreSQL descartável e isolado**, aplique as migrações
+nesse banco e forneça sua URL em `TEST_POSTGRESQL_DATABASE_URL`:
 
 ```powershell
+$env:TEST_POSTGRESQL_DATABASE_URL = 'postgresql+psycopg://usuario:senha@localhost:5432/banco_descartavel'
+$env:DATABASE_URL = $env:TEST_POSTGRESQL_DATABASE_URL
+python -m alembic upgrade head
 python -m pytest tests\integration\test_usage_postgresql.py tests\integration\test_handoff_postgresql.py
 ```
 
-Sem essa variável, os dois testes são ignorados. Não aponte para banco de
-desenvolvimento compartilhado ou produção.
+Sem essa variável, os dois testes são ignorados. Não aponte para banco
+compartilhado ou de produção. `DATABASE_URL` permanece configurada no terminal
+após esses comandos; remova ou restaure seu valor antes de outras operações.
