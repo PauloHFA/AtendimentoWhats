@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     meta_access_token: SecretStr | None = None
     meta_phone_number_id: str | None = None
     meta_graph_api_version: str | None = None
+    simulator_business_name: str = ""
     webhook_max_body_bytes: int = Field(default=1_000_000, gt=0)
     webhook_rate_limit_requests_per_minute: int = Field(default=120, gt=0)
 

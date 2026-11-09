@@ -227,12 +227,12 @@ whatsapp-atendimento/
 - [x] T009 [US1] [Plan:3.2] Criar saudação, aviso do bot, consentimento inicial e menus interativos em `src/flows/` e `tests/dialogs/test_first_contact.py`.
 - [x] T010 [P] [US1] [Plan:3.2] Tratar textos, botões, listas e tipos de mídia em `src/channel/` e `tests/contract/test_inbound_message_types.py`.
 - [x] T011 [US1] [Plan:3.3] Implementar busca FAQ com citação do título e fallback para humano em `src/knowledge/` e `tests/unit/test_faq_grounding.py`.
-- [ ] T012 [US1] [Plan:3.3] Criar diálogos dourados de primeiro contato, FAQ, ausência de resposta e fora de escopo em `tests/dialogs/`.
+- [x] T012 [US1] [Plan:3.3] Criar diálogos dourados de primeiro contato, FAQ, ausência de resposta e fora de escopo em `tests/dialogs/`.
 
 ### Fase 4 — US2: Pedidos, agendamentos e consentimento
 
-- [ ] T013 [US2] [Plan:4.1] Implementar consulta simulada de pedidos com validação prévia em `src/integrations/orders.py` e `tests/unit/test_order_status.py`.
-- [ ] T014 [US2] [Plan:4.2] Implementar disponibilidade, criação, consulta e cancelamento de agendamentos em `src/integrations/appointments.py` e `tests/integration/test_appointments.py`.
+- [x] T013 [US2] [Plan:4.1] Implementar consulta simulada de pedidos com validação prévia em `src/integrations/orders.py` e `tests/unit/test_order_status.py`.
+- [x] T014 [US2] [Plan:4.2] Implementar disponibilidade, criação, consulta e cancelamento de agendamentos em `src/integrations/appointments.py` e `tests/integration/test_appointments.py`.
 - [ ] T015 [US2] [Plan:4.3] Implementar registro de opt-in/opt-out e bloqueio das palavras PARAR, SAIR e CANCELAR em `src/consent/` e `tests/unit/test_consent.py`.
 - [ ] T016 [US2] [Plan:4.3] Implementar janela de 24 h, templates permitidos e contagem por categoria em `src/flows/` e `src/channel/`, com testes em `tests/unit/test_message_window.py`.
 - [ ] T017 [US2] [Plan:4.3] Criar diálogos para pedido válido/inválido, conflito de agenda, opt-out e template fora da janela em `tests/dialogs/`.

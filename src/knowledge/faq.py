@@ -52,7 +52,9 @@ _STOP_WORDS = frozenset(
 class ArticleLike(Protocol):
     title: str
     content: str
-    tags: Sequence[str]
+
+    @property
+    def tags(self) -> Sequence[str]: ...
 
 
 @dataclass(frozen=True)

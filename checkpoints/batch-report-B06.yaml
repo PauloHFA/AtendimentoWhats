@@ -1,0 +1,59 @@
+batch_id: "B06"
+completed_tasks: ["T013"]
+blocked_tasks: []
+required_endpoints: []
+files_changed:
+  T013:
+    - file: "src/integrations/orders.py"
+      change_type: "created"
+      description: "Validates order numbers before scoped lookup"
+    - file: "src/db/models.py"
+      change_type: "modified"
+      description: "Adds simulated order owned by a contact"
+    - file: "migrations/versions/0002_simulated_orders.py"
+      change_type: "created"
+      description: "Adds reversible simulated order table migration"
+    - file: "src/flows/faq_journey.py"
+      change_type: "modified"
+      description: "Adds order-number prompt and status/expected-date response"
+    - file: "src/tasks.py"
+      change_type: "modified"
+      description: "Injects contact-scoped order lookup into simulated conversation"
+    - file: "tests/unit/test_order_status.py"
+      change_type: "created"
+      description: "Verifies invalid input never queries and contact isolation"
+    - file: "tests/dialogs/test_faq_journey.py"
+      change_type: "modified"
+      description: "Exercises valid, invalid and other-contact order journeys"
+    - file: "README.md"
+      change_type: "modified"
+      description: "Documents simulated order configuration and authentication limitation"
+upstream_artifacts_consumed:
+  T013:
+    - artifact: "plan.md"
+      used_for: "Simulated order status, validation, and customer isolation"
+    - artifact: "Automação de Atendimento via WhatsApp Documento de Requisitos e Especificações.pdf"
+      used_for: "RF-10 and CA-07; status and expected date"
+evidence_mapping:
+  T013:
+    - upstream: "plan.md#4.1 Consulta de pedido"
+      output: "src/integrations/orders.py"
+      evidence: "Invalid input is rejected without querying; tests verify status, date, and contact isolation."
+traceability:
+  - requirement: "RF-10"
+    plan_item: "4.1"
+    task: "T013"
+    files: ["src/integrations/orders.py", "tests/unit/test_order_status.py"]
+    status: "partial"
+protocol_violation: false
+errors: []
+warnings:
+  - severity: MEDIUM
+    message: "Order lookup is simulated only; contact association is not authentication for real orders."
+test_results:
+  T013:
+    command: "python -m pytest tests/unit/test_order_status.py tests/dialogs/test_faq_journey.py tests/integration/test_models.py"
+    passed: 31
+    failed: 0
+    skipped: 0
+    failures: []

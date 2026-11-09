@@ -23,8 +23,10 @@ def session() -> Session:
 def test_schema_creates_all_domain_tables(session: Session) -> None:
     assert set(Base.metadata.tables) == {
         "contacts",
+        "consent_events",
         "conversations",
         "messages",
+        "simulated_orders",
         "tickets",
         "appointments",
         "knowledge_articles",

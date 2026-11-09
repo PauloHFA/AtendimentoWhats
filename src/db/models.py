@@ -16,6 +16,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     Uuid,
+    text,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -43,6 +44,24 @@ class Contact(Base):
 
     conversations: Mapped[list[Conversation]] = relationship(back_populates="contact")
     appointments: Mapped[list[Appointment]] = relationship(back_populates="contact")
+
+
+class ConsentEvent(Base):
+    __tablename__ = "consent_events"
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    contact_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("contacts.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    action: Mapped[str] = mapped_column(String(16), nullable=False)
+    source: Mapped[str] = mapped_column(String(255), nullable=False)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    recorded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, nullable=False
+    )
 
 
 class Conversation(Base):
@@ -112,7 +131,17 @@ class Ticket(Base):
 
 class Appointment(Base):
     __tablename__ = "appointments"
-    __table_args__ = (Index("ix_appointments_contact_start", "contact_id", "starts_at"),)
+    __table_args__ = (
+        Index("ix_appointments_contact_start", "contact_id", "starts_at"),
+        Index(
+            "uq_appointments_booked_service_start",
+            "service",
+            "starts_at",
+            unique=True,
+            postgresql_where=text("status = 'BOOKED'"),
+            sqlite_where=text("status = 'BOOKED'"),
+        ),
+    )
 
     id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
     contact_id: Mapped[UUID] = mapped_column(
@@ -124,6 +153,18 @@ class Appointment(Base):
     status: Mapped[str] = mapped_column(String(16), default="BOOKED", nullable=False)
 
     contact: Mapped[Contact] = relationship(back_populates="appointments")
+
+
+class SimulatedOrder(Base):
+    __tablename__ = "simulated_orders"
+
+    id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    number: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
+    contact_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("contacts.id", ondelete="CASCADE"), nullable=False
+    )
+    status: Mapped[str] = mapped_column(String(255), nullable=False)
+    expected_date: Mapped[date | None] = mapped_column(Date)
 
 
 class KnowledgeArticle(Base):

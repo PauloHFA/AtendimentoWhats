@@ -1,0 +1,57 @@
+batch_id: "B08"
+completed_tasks: []
+blocked_tasks: []
+in_progress_tasks: ["T015"]
+required_endpoints: []
+files_changed:
+  T015:
+    - file: "src/consent/service.py"
+      change_type: "created"
+      description: "Records opt-in and opt-out events and updates contact consent"
+    - file: "src/tasks.py"
+      change_type: "modified"
+      description: "Processes opt-out regardless of simulator and records explicit simulator opt-in"
+    - file: "src/flows/faq_journey.py"
+      change_type: "modified"
+      description: "Offers optional marketing opt-in with explicit confirmation and stale-reply rejection"
+    - file: "src/db/models.py"
+      change_type: "modified"
+      description: "Adds consent history model"
+    - file: "migrations/versions/0004_consent_history.py"
+      change_type: "created"
+      description: "Adds reversible consent history table"
+    - file: "tests/unit/test_consent.py"
+      change_type: "created"
+      description: "Verifies consent history and rejection of stale opt-in"
+    - file: "tests/dialogs/test_faq_journey.py"
+      change_type: "modified"
+      description: "Verifies opt-out and idempotent history with simulator disabled"
+upstream_artifacts_consumed:
+  T015:
+    - artifact: "plan.md"
+      used_for: "Consent records and opt-out keywords"
+    - artifact: "Automação de Atendimento via WhatsApp Documento de Requisitos e Especificações.pdf"
+      used_for: "RF-15 and RN-03"
+evidence_mapping:
+  T015:
+    - upstream: "plan.md#4.3 Consentimento, expediente e janela de mensagens"
+      output: "src/consent/service.py and src/tasks.py"
+      evidence: "Consent unit and worker dialogue tests pass; SQLite migration round-trip passed."
+traceability:
+  - requirement: "RF-15"
+    plan_item: "4.3"
+    task: "T015"
+    files: ["src/consent/service.py", "src/tasks.py"]
+    status: "partial"
+protocol_violation: false
+errors: []
+warnings:
+  - severity: HIGH
+    message: "Opt-in collection is simulator-only; real active-send enforcement remains pending and T015 is in progress."
+test_results:
+  T015:
+    command: "python -m pytest"
+    passed: 92
+    failed: 0
+    skipped: 0
+    failures: []

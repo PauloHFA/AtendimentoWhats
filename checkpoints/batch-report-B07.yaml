@@ -1,0 +1,50 @@
+batch_id: "B07"
+completed_tasks: ["T014"]
+blocked_tasks: []
+required_endpoints: []
+files_changed:
+  T014:
+    - file: "src/integrations/appointments.py"
+      change_type: "created"
+      description: "Fixed-slot availability, booking, cancellation and scoped listing"
+    - file: "src/db/models.py"
+      change_type: "modified"
+      description: "Partial unique index for active bookings"
+    - file: "migrations/versions/0003_appointment_slot.py"
+      change_type: "created"
+      description: "Reversible booking uniqueness index"
+    - file: "tests/integration/test_appointments.py"
+      change_type: "created"
+      description: "Tests availability, conflicts, overlap, cancellation and transactional rollback"
+    - file: "README.md"
+      change_type: "modified"
+      description: "Documents fixed UTC slots, transactions and simulator limitations"
+upstream_artifacts_consumed:
+  T014:
+    - artifact: "plan.md"
+      used_for: "Simulated availability, booking, cancellation and conflict alternatives"
+    - artifact: "Automação de Atendimento via WhatsApp Documento de Requisitos e Especificações.pdf"
+      used_for: "RF-11 and CA-08 scheduling requirements"
+evidence_mapping:
+  T014:
+    - upstream: "plan.md#4.2 Agendamento"
+      output: "src/integrations/appointments.py"
+      evidence: "12 integration tests; PostgreSQL migration parity, downgrade/re-upgrade and concurrent slot race passed"
+traceability:
+  - requirement: "RF-11"
+    plan_item: "4.2"
+    task: "T014"
+    files: ["src/integrations/appointments.py", "tests/integration/test_appointments.py"]
+    status: "partial"
+protocol_violation: false
+errors: []
+warnings:
+  - severity: MEDIUM
+    message: "Scheduling is a simulated service; conversation journey, business hours and real agenda integration remain pending."
+test_results:
+  T014:
+    command: "python -m pytest tests/integration/test_appointments.py"
+    passed: 12
+    failed: 0
+    skipped: 0
+    failures: []

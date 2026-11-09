@@ -41,6 +41,44 @@ O `.env.example` contém apenas valores locais de desenvolvimento. Não use esse
 - O webhook verifica o token de inscrição, valida HMAC `X-Hub-Signature-256`, limita o tamanho e a taxa de requisições via Redis e persiste eventos antes de enfileirá-los.
 - O worker grava mensagens recebidas com deduplicação por `wamid`; as migrações criam as tabelas de contatos, conversas, mensagens e demais domínios.
 
+Para exercitar a jornada de primeiro contato e FAQ no worker, defina
+`SIMULATOR_BUSINESS_NAME` no `.env` com o nome fictício do negócio. O modo é
+desativado por padrão. As respostas são armazenadas em `messages` com
+`direction=OUTBOUND` e `delivery_status=SIMULATED`; **não são enviadas ao
+WhatsApp**. A base de artigos deve ser cadastrada em `knowledge_articles`;
+nenhum conteúdo comercial é criado automaticamente. A escolha de continuar é
+mantida apenas no estado da conversa e não registra opt-in de marketing.
+PARAR, SAIR e CANCELAR registram opt-out no contato mesmo fora do modo
+simulado; o histórico é salvo em `consent_events`. O serviço de registro
+de opt-in de marketing exige uma fonte explícita. No simulador, após aceitar
+o atendimento, digite `MARKETING` para abrir uma pergunta opcional e autorizar
+ou recusar por botão; essa autorização é distinta do aceite de atendimento.
+Uma resposta enviada no mesmo segundo da pergunta é rejeitada por segurança;
+nesse caso, solicite a pergunta novamente. O bloqueio de envios ativos reais
+ainda precisa ser implementado. O
+handoff humano ainda não está disponível; a simulação informa essa limitação.
+Não habilite este modo como integração real com a Meta.
+
+Na simulação, após aceitar a mensagem inicial, digite `pedido` para consultar
+um pedido cadastrado na tabela `simulated_orders`. O número deve ter de 4 a
+20 dígitos ASCII e o registro deve estar vinculado ao contato simulado.
+Não há pedidos pré-cadastrados. A associação por contato serve apenas à
+simulação e não substitui autenticação para uma integração real.
+
+O serviço simulado de agendamentos em `src/integrations/appointments.py`
+oferece horários fixos de 30 minutos, alinhados em UTC, por serviço. Ele cria,
+lista e cancela reservas por contato e sugere alternativas em caso de conflito.
+O chamador deve confirmar ou reverter a transação do banco. Não há catálogo de
+serviços nem horário comercial configurados; a jornada de agendamento no
+simulador e a integração com uma agenda real ainda não foram implementadas.
+
+O componente `src/flows/message_policy.py` verifica a janela de 24 horas,
+o consentimento para mensagens ativas e templates de uma lista aprovada
+fornecida pelo chamador. Ele ainda **não está ligado a um canal de envio**,
+não consulta a Meta e não atualiza contadores de uso. Portanto, não garante
+que envios sejam bloqueados: essa integração continua obrigatória antes
+de habilitar mensagens reais.
+
 Os testes de contrato, fluxo e API rodam com `python -m pytest`; não precisam de Docker nem de credenciais da Meta.
 
 ## Verificações

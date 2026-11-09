@@ -1,0 +1,77 @@
+batch_id: "B05"
+completed_tasks: ["T012"]
+blocked_tasks: []
+required_endpoints: []
+files_changed:
+  T012:
+    - file: "src/flows/faq_journey.py"
+      change_type: "created"
+      description: "Simulated first-contact, consent, FAQ, and human-offer flow"
+    - file: "src/tasks.py"
+      change_type: "modified"
+      description: "Optional simulator processing with transactional outbound records and opt-out capture"
+    - file: "src/config.py"
+      change_type: "modified"
+      description: "Adds opt-in simulator business name configuration"
+    - file: "src/knowledge/faq.py"
+      change_type: "modified"
+      description: "Allows SQLAlchemy articles through read-only tag protocol"
+    - file: "tests/dialogs/test_faq_journey.py"
+      change_type: "created"
+      description: "Golden dialogues, unsupported questions, ownership, replay and rollback tests"
+    - file: ".env.example"
+      change_type: "modified"
+      description: "Documents disabled-by-default simulator configuration"
+    - file: "docker-compose.yml"
+      change_type: "modified"
+      description: "Passes simulator configuration to worker"
+    - file: "README.md"
+      change_type: "modified"
+      description: "Documents simulator, data and handoff limitations"
+upstream_artifacts_consumed:
+  T012:
+    - artifact: "plan.md"
+      used_for: "First-contact, cited FAQ, no-answer and out-of-scope dialogues"
+evidence_mapping:
+  T012:
+    - upstream: "plan.md#3.3 FAQ e fallback seguro"
+      output: "src/flows/faq_journey.py and tests/dialogs/test_faq_journey.py"
+      evidence: "13 dialogue tests and real Compose PostgreSQL/Redis/Celery signed webhook probe passed"
+traceability:
+  - requirement: "RF-09"
+    plan_item: "3.3"
+    task: "T012"
+    files: ["src/flows/faq_journey.py", "tests/dialogs/test_faq_journey.py"]
+    status: "partial"
+  - requirement: "RN-07"
+    plan_item: "3.3"
+    task: "T012"
+    files: ["src/flows/faq_journey.py", "tests/dialogs/test_faq_journey.py"]
+    status: "partial"
+protocol_violation: false
+errors: []
+warnings:
+  - severity: MEDIUM
+    message: "Output is simulated only; actual Meta sending, human handoff and active-message opt-out enforcement are pending."
+  - severity: LOW
+    message: "Real PostgreSQL and Redis probe did not validate concurrency or load."
+test_results:
+  T012:
+    command: "python -m pytest tests/dialogs/test_faq_journey.py"
+    passed: 13
+    failed: 0
+    skipped: 0
+    failures: []
+endpoint_probes:
+  - method: "GET"
+    path: "/health"
+    status: 200
+    result: "PASS in isolated Compose"
+  - method: "GET"
+    path: "/webhook"
+    status: 200
+    result: "PASS: verification challenge in isolated Compose"
+  - method: "POST"
+    path: "/webhook"
+    status: 200
+    result: "PASS: HMAC, PostgreSQL persistence, Redis, Celery, FAQ and duplicate replay"

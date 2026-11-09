@@ -1,0 +1,48 @@
+batch_id: "B09"
+completed_tasks: []
+blocked_tasks: []
+in_progress_tasks: ["T016"]
+required_endpoints: []
+files_changed:
+  T016:
+    - file: "src/flows/message_policy.py"
+      change_type: "created"
+      description: "Validates message window, explicit active consent, and caller-supplied approved templates"
+    - file: "tests/unit/test_message_window.py"
+      change_type: "created"
+      description: "Verifies exact 24-hour boundary, categories, consent and invalid inputs"
+    - file: "README.md"
+      change_type: "modified"
+      description: "Documents that policy is not yet integrated with outgoing channel"
+upstream_artifacts_consumed:
+  T016:
+    - artifact: "plan.md"
+      used_for: "24-hour window, approved templates and active-message consent"
+evidence_mapping:
+  T016:
+    - upstream: "plan.md#4.3 Consentimento, expediente e janela de mensagens"
+      output: "src/flows/message_policy.py"
+      evidence: "15 unit tests cover window boundaries, approved templates and consent"
+traceability:
+  - requirement: "RF-14"
+    plan_item: "4.3"
+    task: "T016"
+    files: ["src/flows/message_policy.py", "tests/unit/test_message_window.py"]
+    status: "partial"
+  - requirement: "RN-03"
+    plan_item: "4.3"
+    task: "T016"
+    files: ["src/flows/message_policy.py"]
+    status: "partial"
+protocol_violation: false
+errors: []
+warnings:
+  - severity: HIGH
+    message: "Policy is not wired to an outbound channel, approved templates are supplied by the caller, and usage counting remains unimplemented."
+test_results:
+  T016:
+    command: "python -m pytest tests/unit/test_message_window.py"
+    passed: 15
+    failed: 0
+    skipped: 0
+    failures: []

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from functools import partial
 from typing import Any
 from uuid import UUID
 
@@ -13,8 +14,12 @@ from sqlalchemy.orm import Session
 
 from src.celery_app import celery_app
 from src.channel.simulator import SimulatorAdapter
-from src.db.models import Contact, Conversation, Message, WebhookEvent
+from src.config import get_settings
+from src.consent.service import StaleOptInError, record_marketing_opt_in, record_opt_out
+from src.db.models import Contact, Conversation, KnowledgeArticle, Message, WebhookEvent
 from src.db.session import SessionLocal
+from src.flows.faq_journey import handle_simulated_turn
+from src.integrations.orders import OrderLookup
 
 
 class QueueUnavailableError(RuntimeError):
@@ -38,10 +43,15 @@ def enqueue_webhook_event(event_id: str) -> None:
 )  # type: ignore[untyped-decorator]
 def process_webhook_event(event_id: str) -> None:
     with SessionLocal() as session:
-        _process_webhook_event(session, event_id)
+        business_name = get_settings().simulator_business_name.strip()
+        _process_webhook_event(
+            session, event_id, simulation_business_name=business_name or None
+        )
 
 
-def _process_webhook_event(session: Session, event_id: str) -> None:
+def _process_webhook_event(
+    session: Session, event_id: str, *, simulation_business_name: str | None = None
+) -> None:
     event_uuid = UUID(event_id)
     event = session.scalar(
         select(WebhookEvent)
@@ -65,6 +75,7 @@ def _process_webhook_event(session: Session, event_id: str) -> None:
         contact = _get_or_create_contact(session, inbound.sender)
         message_at = datetime.fromtimestamp(inbound.timestamp, UTC)
         conversation = _active_conversation(session, contact, message_at)
+        is_first_contact = conversation is None
         if conversation is None:
             conversation = Conversation(
                 contact=contact,
@@ -106,12 +117,65 @@ def _process_webhook_event(session: Session, event_id: str) -> None:
                 created_at=message_at,
             )
         )
+        text = (inbound.text or "").strip().upper()
+        is_opt_out = inbound.message_type == "text" and text in {"PARAR", "SAIR", "CANCELAR"}
+        if is_opt_out:
+            record_opt_out(session, contact, at=message_at, source=inbound.message_id)
+            if conversation.state.startswith("awaiting_marketing:"):
+                conversation.state = "faq"
+
+        if simulation_business_name is not None:
+            if not simulation_business_name.strip():
+                raise ValueError("simulation_business_name must not be empty")
+            sent_before = len(adapter.sent_messages)
+            if is_opt_out:
+                if conversation.status == "BOT":
+                    adapter.send_text(
+                        inbound.sender,
+                        "Seu pedido para bloquear mensagens ativas foi registrado.",
+                    )
+            elif conversation.status == "BOT":
+                articles = list(session.scalars(select(KnowledgeArticle)))
+
+                conversation.state = handle_simulated_turn(
+                    adapter,
+                    inbound,
+                    state=conversation.state,
+                    is_first_contact=is_first_contact or conversation.state == "menu",
+                    business_name=simulation_business_name,
+                    articles=articles,
+                    orders=OrderLookup(session),
+                    contact_id=contact.id,
+                    confirm_marketing=partial(
+                        _confirm_marketing, session, contact, message_at, inbound.message_id
+                    ),
+                )
+            for outgoing in adapter.sent_messages[sent_before:]:
+                session.add(
+                    Message(
+                        conversation_id=conversation.id,
+                        direction="OUTBOUND",
+                        message_type=outgoing.message_type,
+                        content=outgoing.payload,
+                        delivery_status="SIMULATED",
+                    )
+                )
 
     _update_delivery_statuses(session, event.raw_payload)
     event.processing_status = "PROCESSED"
     event.processed_at = datetime.now(UTC)
     event.last_error = None
     session.commit()
+
+
+def _confirm_marketing(
+    session: Session, contact: Contact, message_at: datetime, message_id: str
+) -> bool:
+    try:
+        record_marketing_opt_in(session, contact, at=message_at, source=message_id)
+    except StaleOptInError:
+        return False
+    return True
 
 
 def _get_or_create_contact(session: Session, wa_id: str) -> Contact:
