@@ -32,6 +32,7 @@ def test_schema_creates_all_domain_tables(session: Session) -> None:
         "knowledge_articles",
         "webhook_events",
         "usage_counters",
+        "usage_records",
     }
 
 

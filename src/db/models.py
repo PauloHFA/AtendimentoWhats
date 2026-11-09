@@ -213,3 +213,14 @@ class UsageCounter(Base):
     phone_number_id: Mapped[str] = mapped_column(String(64), nullable=False)
     category: Mapped[str] = mapped_column(String(32), nullable=False)
     quantity: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+
+class UsageRecord(Base):
+    __tablename__ = "usage_records"
+
+    message_id: Mapped[UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("messages.id", ondelete="CASCADE"), primary_key=True
+    )
+    month: Mapped[date] = mapped_column(Date, nullable=False)
+    phone_number_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    category: Mapped[str] = mapped_column(String(32), nullable=False)

@@ -18,7 +18,9 @@ from src.config import get_settings
 from src.consent.service import StaleOptInError, record_marketing_opt_in, record_opt_out
 from src.db.models import Contact, Conversation, KnowledgeArticle, Message, WebhookEvent
 from src.db.session import SessionLocal
+from src.flows.business_hours import BusinessHours
 from src.flows.faq_journey import handle_simulated_turn
+from src.integrations.appointments import AppointmentService
 from src.integrations.orders import OrderLookup
 
 
@@ -43,14 +45,22 @@ def enqueue_webhook_event(event_id: str) -> None:
 )  # type: ignore[untyped-decorator]
 def process_webhook_event(event_id: str) -> None:
     with SessionLocal() as session:
-        business_name = get_settings().simulator_business_name.strip()
+        settings = get_settings()
+        business_name = settings.simulator_business_name.strip()
         _process_webhook_event(
-            session, event_id, simulation_business_name=business_name or None
+            session,
+            event_id,
+            simulation_business_name=business_name or None,
+            simulation_business_hours=settings.simulator_business_hours,
         )
 
 
 def _process_webhook_event(
-    session: Session, event_id: str, *, simulation_business_name: str | None = None
+    session: Session,
+    event_id: str,
+    *,
+    simulation_business_name: str | None = None,
+    simulation_business_hours: BusinessHours | None = None,
 ) -> None:
     event_uuid = UUID(event_id)
     event = session.scalar(
@@ -143,8 +153,10 @@ def _process_webhook_event(
                     state=conversation.state,
                     is_first_contact=is_first_contact or conversation.state == "menu",
                     business_name=simulation_business_name,
+                    business_hours=simulation_business_hours,
                     articles=articles,
                     orders=OrderLookup(session),
+                    appointments=AppointmentService(session),
                     contact_id=contact.id,
                     confirm_marketing=partial(
                         _confirm_marketing, session, contact, message_at, inbound.message_id
@@ -220,6 +232,7 @@ def _active_conversation(
             Conversation.contact_id == contact.id,
             Conversation.status != "CLOSED",
             or_(
+                Conversation.status == "HUMAN",
                 Conversation.session_expires_at.is_(None),
                 Conversation.session_expires_at > message_at,
             ),

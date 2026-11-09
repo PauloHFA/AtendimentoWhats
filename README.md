@@ -59,6 +59,31 @@ ainda precisa ser implementado. O
 handoff humano ainda não está disponível; a simulação informa essa limitação.
 Não habilite este modo como integração real com a Meta.
 
+Opcionalmente, configure `SIMULATOR_BUSINESS_HOURS` com JSON para informar
+quando um pedido de atendimento humano chega fora do expediente. Por exemplo:
+
+```text
+SIMULATOR_BUSINESS_HOURS={"timezone":"America/Sao_Paulo","intervals":[{"weekday":0,"start":"09:00","end":"18:00"}]}
+```
+
+O exemplo define apenas segunda-feira; `weekday` vai de 0 (segunda) a 6
+(domingo). Cada intervalo pertence a um único dia, inclui o início e exclui o
+fim. Dias sem intervalos estão fechados; turnos que atravessam a meia-noite
+não são suportados. Informe um fuso IANA disponível no sistema. Sem essa
+configuração, o simulador não presume expediente. Ela não aplica restrições a
+agendamentos nem cria fila de atendimento; não substitui integração real.
+
+O serviço interno `src/handoff/service.py` permite criar e listar tickets abertos,
+transferir a posse para atendimento humano e devolver a conversa ao bot,
+fechando o ticket na mesma transação. O chamador deve confirmar ou reverter
+essa transação. Em PostgreSQL, as operações serializam pela linha da conversa;
+SQLite é apenas para desenvolvimento e não fornece o mesmo bloqueio. Uma
+conversa sob atendimento humano não expira automaticamente. Esse serviço ainda
+não está conectado ao simulador, a uma interface de atendente ou ao Chatwoot:
+não existe fila operacional nem entrega ao atendente.
+`list_open_tickets` oferece uma consulta paginada, ordenada por criação e ID;
+ela não reserva tickets para atendentes e páginas podem mudar entre consultas.
+
 Na simulação, após aceitar a mensagem inicial, digite `pedido` para consultar
 um pedido cadastrado na tabela `simulated_orders`. O número deve ter de 4 a
 20 dígitos ASCII e o registro deve estar vinculado ao contato simulado.
@@ -70,7 +95,17 @@ oferece horários fixos de 30 minutos, alinhados em UTC, por serviço. Ele cria,
 lista e cancela reservas por contato e sugere alternativas em caso de conflito.
 O chamador deve confirmar ou reverter a transação do banco. Não há catálogo de
 serviços nem horário comercial configurados; a jornada de agendamento no
-simulador e a integração com uma agenda real ainda não foram implementadas.
+simulador aceita comandos após o aceite inicial:
+
+- `AGENDAR Consulta | 01/01/2035 10:00` cria uma reserva simulada.
+- `AGENDAMENTOS` lista as reservas ativas do contato.
+- `DESMARCAR <código>` cancela uma reserva do contato.
+
+Todos os horários são em UTC, futuros e em intervalos de 30 minutos; em caso
+de conflito são sugeridas alternativas. Os nomes de serviços são livres e a
+disponibilidade é apenas simulada, sem aplicação de horário comercial.
+`CANCELAR` continua sendo opt-out de mensagens ativas e não cancela reservas.
+Não há integração com uma agenda real nem autenticação suficiente para usá-la.
 
 O componente `src/flows/message_policy.py` verifica a janela de 24 horas,
 o consentimento para mensagens ativas e templates de uma lista aprovada
@@ -79,6 +114,19 @@ delegar um envio e consulta o contexto novamente a cada mensagem. O worker
 simulado e qualquer futuro canal real **ainda não usam esse adaptador**;
 o catálogo aprovado, o contexto confiável, a contagem de uso e a sincronização
 do opt-out com o envio real precisam ser integrados antes de mensagens reais.
+
+O serviço interno `src/usage/service.py` registra contagem mensal em UTC por
+número e categoria, de modo idempotente por mensagem e na transação do chamador.
+Aceita apenas mensagens de saída persistidas, com identificador do canal e
+status confirmado (`SENT`, `DELIVERED` ou `READ`); mensagens simuladas não
+contam. A categoria e o horário de envio são responsabilidade do chamador.
+Essa é uma contagem técnica, não uma estimativa de cobrança da Meta. O serviço
+ainda não está conectado a um canal real ou aos callbacks e não reconcilia
+alterações de categoria, falhas posteriores nem dados de faturamento oficiais.
+O downgrade da migração de contagem é bloqueado se houver registros, para
+evitar contagens duplicadas em reprocessamentos. Se mensagens forem excluídas,
+seus registros de idempotência também são excluídos, mas os agregados permanecem;
+qualquer futura política de retenção deve levar isso em conta.
 
 Os testes de contrato, fluxo e API rodam com `python -m pytest`; não precisam de Docker nem de credenciais da Meta.
 
@@ -89,3 +137,15 @@ python -m pytest
 ruff check .
 mypy
 ```
+
+Os testes concorrentes de PostgreSQL são opcionais e gravam dados de teste.
+Para executá-los, use **somente um banco PostgreSQL descartável e isolado**,
+aplique as migrações e forneça a URL desse banco em
+`TEST_POSTGRESQL_DATABASE_URL`:
+
+```powershell
+python -m pytest tests\integration\test_usage_postgresql.py tests\integration\test_handoff_postgresql.py
+```
+
+Sem essa variável, os dois testes são ignorados. Não aponte para banco de
+desenvolvimento compartilhado ou produção.

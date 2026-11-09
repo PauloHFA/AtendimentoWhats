@@ -3,6 +3,8 @@ from functools import lru_cache
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from src.flows.business_hours import BusinessHours
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(case_sensitive=False, extra="ignore")
@@ -16,6 +18,7 @@ class Settings(BaseSettings):
     meta_phone_number_id: str | None = None
     meta_graph_api_version: str | None = None
     simulator_business_name: str = ""
+    simulator_business_hours: BusinessHours | None = None
     webhook_max_body_bytes: int = Field(default=1_000_000, gt=0)
     webhook_rate_limit_requests_per_minute: int = Field(default=120, gt=0)
 

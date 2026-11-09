@@ -1,11 +1,12 @@
 from collections.abc import Iterator
-from datetime import date
+from datetime import UTC, date, datetime
 
 import pytest
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
 from src.db.models import (
+    Appointment,
     Base,
     ConsentEvent,
     Contact,
@@ -15,6 +16,7 @@ from src.db.models import (
     SimulatedOrder,
     WebhookEvent,
 )
+from src.flows.business_hours import BusinessHours
 from src.tasks import _process_webhook_event
 
 
@@ -35,6 +37,7 @@ def send(
     selection: str | None = None,
     simulate: bool = True,
     timestamp: int = 1794142800,
+    business_hours: BusinessHours | None = None,
 ) -> None:
     message: dict[str, object] = {
         "id": message_id,
@@ -57,7 +60,10 @@ def send(
     session.add(event)
     session.commit()
     _process_webhook_event(
-        session, str(event.id), simulation_business_name="Loja Exemplo" if simulate else None
+        session,
+        str(event.id),
+        simulation_business_name="Loja Exemplo" if simulate else None,
+        simulation_business_hours=business_hours,
     )
     _process_webhook_event(
         session, str(event.id), simulation_business_name="Loja Exemplo" if simulate else None
@@ -134,9 +140,47 @@ def test_human_owned_conversation_never_sends_bot_response(session: Session) -> 
     assert len(outbound(session)) == 2
 
 
+def test_human_ownership_survives_session_expiry(session: Session) -> None:
+    send(session, "wamid.1", "Oi")
+    conversation = session.scalar(select(Conversation))
+    assert conversation is not None
+    conversation.status = "HUMAN"
+    session.commit()
+    send(session, "wamid.2", "Olá", timestamp=1794142800 + 3600)
+    assert len(outbound(session)) == 2
+    assert len(session.scalars(select(Conversation)).all()) == 1
+    messages = session.scalars(
+        select(Message).where(Message.conversation_id == conversation.id)
+    ).all()
+    assert len(messages) == 4
+
+
 def test_human_request_is_available_on_first_turn(session: Session) -> None:
     send(session, "wamid.1", "falar com atendente")
     assert "não está disponível" in outbound(session)[-1].content["text"]
+
+
+def test_human_request_mentions_configured_hours_only_when_closed(session: Session) -> None:
+    schedule = BusinessHours.model_validate({"timezone": "UTC", "intervals": []})
+    send(session, "wamid.1", "falar com atendente", business_hours=schedule)
+    text = outbound(session)[-1].content["text"]
+    assert "não está disponível" in text
+    assert "fora do horário comercial" in text
+    assert session.scalar(select(Conversation)).status == "BOT"
+
+
+def test_human_request_during_configured_hours_does_not_claim_closure(session: Session) -> None:
+    instant = datetime.fromtimestamp(1794142800, UTC)
+    schedule = BusinessHours.model_validate(
+        {
+            "timezone": "UTC",
+            "intervals": [{"weekday": instant.weekday(), "start": "00:00", "end": "23:59"}],
+        }
+    )
+    send(session, "wamid.1", "falar com atendente", business_hours=schedule)
+    text = outbound(session)[-1].content["text"]
+    assert "não está disponível" in text
+    assert "fora do horário comercial" not in text
 
 
 @pytest.mark.parametrize("word", ["PARAR", "sair", "Cancelar"])
@@ -290,6 +334,77 @@ def test_order_for_another_contact_is_not_disclosed(session: Session) -> None:
     send(session, "wamid.4", "001234")
     assert "não encontrei" in outbound(session)[-1].content["text"].lower()
     assert "Segredo" not in outbound(session)[-1].content["text"]
+
+
+def test_appointment_dialog_create_list_and_cancel(session: Session) -> None:
+    send(session, "wamid.1", "Oi")
+    send(session, "wamid.2", "Aceito", selection="consent_yes")
+    send(session, "wamid.3", "agendar")
+    assert "DD/MM/AAAA HH:MM" in outbound(session)[-1].content["text"]
+    send(session, "wamid.4", "AGENDAR Consulta | 01/01/2035 10:00")
+    appointment = session.scalar(select(Appointment))
+    assert appointment is not None
+    assert "confirmado" in outbound(session)[-1].content["text"]
+    send(session, "wamid.5", "AGENDAMENTOS")
+    assert str(appointment.id) in outbound(session)[-1].content["text"]
+    send(session, "wamid.6", f"DESMARCAR {appointment.id}")
+    session.refresh(appointment)
+    assert appointment.status == "CANCELLED"
+    send(session, "wamid.7", "AGENDAMENTOS")
+    assert "Nenhum" in outbound(session)[-1].content["text"]
+
+
+def test_appointment_conflict_invalid_input_and_contact_isolation(session: Session) -> None:
+    send(session, "wamid.1", "Oi")
+    send(session, "wamid.2", "Aceito", selection="consent_yes")
+    other = Contact(wa_id="15550002222")
+    session.add(other)
+    session.flush()
+    appointment = Appointment(
+        contact_id=other.id, service="consulta", status="BOOKED",
+        starts_at=datetime(2035, 1, 1, 10, tzinfo=UTC),
+        ends_at=datetime(2035, 1, 1, 10, 30, tzinfo=UTC),
+    )
+    session.add(appointment)
+    session.commit()
+    send(session, "wamid.3", "AGENDAR Consulta | 01/01/2035 10:00")
+    assert "01/01/2035 10:30" in outbound(session)[-1].content["text"]
+    send(session, "wamid.4", "AGENDAR Consulta | 01/01/2035 10:01")
+    assert "inválido" in outbound(session)[-1].content["text"]
+    send(session, "wamid.5", "DESMARCAR inválido")
+    assert "código" in outbound(session)[-1].content["text"]
+    send(session, "wamid.6", f"DESMARCAR {appointment.id}")
+    session.refresh(appointment)
+    assert appointment.status == "BOOKED"
+    assert "não encontrado" in outbound(session)[-1].content["text"]
+    send(session, "wamid.7", "AGENDAMENTOS")
+    assert str(appointment.id) not in outbound(session)[-1].content["text"]
+
+
+def test_opt_out_does_not_cancel_appointment(session: Session) -> None:
+    send(session, "wamid.1", "Oi")
+    send(session, "wamid.2", "Aceito", selection="consent_yes")
+    send(session, "wamid.3", "AGENDAR Consulta | 01/01/2035 10:00")
+    send(session, "wamid.4", "CANCELAR")
+    assert session.scalar(select(Appointment)).status == "BOOKED"
+    assert "bloquear mensagens ativas" in outbound(session)[-1].content["text"]
+
+
+def test_appointment_rolls_back_if_response_fails(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    send(session, "wamid.1", "Oi")
+    send(session, "wamid.2", "Aceito", selection="consent_yes")
+
+    def fail(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("erro simulado")
+
+    monkeypatch.setattr("src.channel.simulator.SimulatorAdapter.send_text", fail)
+    with pytest.raises(RuntimeError, match="erro simulado"):
+        send(session, "wamid.3", "AGENDAR Consulta | 01/01/2035 10:00")
+    session.rollback()
+    assert session.scalars(select(Appointment)).all() == []
+    assert session.scalar(select(Message).where(Message.wamid == "wamid.3")) is None
 
 
 def test_simulated_response_and_inbound_rollback_together_on_flow_error(

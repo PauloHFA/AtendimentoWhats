@@ -2,10 +2,14 @@ from __future__ import annotations
 
 import unicodedata
 from collections.abc import Callable, Sequence
+from datetime import UTC, datetime
 from uuid import UUID
 
 from src.channel.adapter import ChannelAdapter, InboundMessage
+from src.flows.appointment_journey import handle_appointment_command
+from src.flows.business_hours import BusinessHours
 from src.flows.welcome import send_first_contact
+from src.integrations.appointments import AppointmentService
 from src.integrations.orders import InvalidOrderNumber, OrderLookup
 from src.knowledge.faq import ArticleLike, FAQService
 
@@ -17,8 +21,10 @@ def handle_simulated_turn(
     state: str,
     is_first_contact: bool,
     business_name: str,
+    business_hours: BusinessHours | None,
     articles: Sequence[ArticleLike],
     orders: OrderLookup,
+    appointments: AppointmentService,
     contact_id: UUID,
     confirm_marketing: Callable[[], bool],
 ) -> str:
@@ -35,10 +41,12 @@ def handle_simulated_turn(
         "falar com atendente",
         "falar com humano",
     }:
-        channel.send_text(
-            message.sender,
-            "O atendimento humano ainda não está disponível nesta demonstração.",
-        )
+        response = "O atendimento humano ainda não está disponível nesta demonstração."
+        if business_hours is not None and not business_hours.is_open(
+            datetime.fromtimestamp(message.timestamp, UTC)
+        ):
+            response += " A mensagem foi recebida fora do horário comercial configurado."
+        channel.send_text(message.sender, response)
         return state
 
     if is_first_contact:
@@ -48,7 +56,8 @@ def handle_simulated_turn(
         if message.selection_id == "consent_yes" or normalized == "aceito":
             channel.send_text(
                 message.sender,
-                "Obrigado. Qual é a sua dúvida? Para consultar um pedido, digite PEDIDO.",
+                "Obrigado. Qual é a sua dúvida? Para consultar um pedido, digite PEDIDO. "
+                "Para agendar na simulação, digite AGENDAR.",
             )
             return "faq"
         channel.send_text(
@@ -94,6 +103,11 @@ def handle_simulated_turn(
 
     if state != "faq":
         raise ValueError(f"Unknown simulated conversation state: {state}")
+
+    if message.message_type == "text" and handle_appointment_command(
+        channel, message.sender, text, appointments, contact_id
+    ):
+        return state
 
     if message.message_type == "text" and normalized == "marketing":
         channel.send_interactive(

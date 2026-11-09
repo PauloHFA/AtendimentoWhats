@@ -6,8 +6,8 @@ metadata:
 summary:
   total_tasks: 29
   completed_tasks: 14
-  in_progress_tasks: 2
-  pending_tasks: 13
+  in_progress_tasks: 4
+  pending_tasks: 11
   completion_percentage: 48.3
 
 tasks:
@@ -414,6 +414,18 @@ tasks:
           changes:
             - change_type: "added"
               description: "Testa bloqueio antes do envio, revogação e validação de templates"
+        - file: "src/usage/service.py"
+          changes:
+            - change_type: "added"
+              description: "Contagem técnica mensal idempotente para mensagens de saída confirmadas"
+        - file: "migrations/versions/0005_usage_records.py"
+          changes:
+            - change_type: "added"
+              description: "Registra idempotência por mensagem para atualização transacional de contadores"
+        - file: "tests/integration/test_usage.py"
+          changes:
+            - change_type: "added"
+              description: "Testa contagem, replay, categorias, fuso, mensagens simuladas e rollback"
     verification:
       build_passed: true
       test_results:
@@ -422,11 +434,87 @@ tasks:
         failed: 0
         skipped: 0
         failures: []
-      notes: "Adaptador protegido ainda não é usado pelo worker nem por canal real; faltam contexto e catálogo confiáveis, sincronização com opt-out e contagem."
+      notes: "Adaptador protegido e contagem ainda não são usados pelo worker ou canal real; faltam contexto e catálogo confiáveis, sincronização com opt-out e conciliação de faturamento. Concorrência da contagem validada em PostgreSQL 18 local isolado."
     upstream_trace:
       plan_item: "4.3"
       requirements: ["RF-14", "RF-18", "RN-01", "RN-02", "RN-03"]
       full_trace: "RF-14,RN-01,RN-02,RN-03 → Phase-4.3 → T016 → src/flows/message_policy.py"
+  - task_id: "T018"
+    description: "Criar tickets e fluxo de handoff"
+    status: "in_progress"
+    implementation:
+      files_changed:
+        - file: "src/handoff/service.py"
+          changes:
+            - change_type: "added"
+              description: "Cria, consulta e encerra tickets com transição transacional da posse da conversa"
+        - file: "src/tasks.py"
+          changes:
+            - change_type: "modified"
+              description: "Mantém a posse humana após a expiração da sessão do bot"
+        - file: "tests/integration/test_handoff.py"
+          changes:
+            - change_type: "added"
+              description: "Verifica transições, idempotência, rollback, paginação e estados inválidos"
+        - file: "tests/dialogs/test_faq_journey.py"
+          changes:
+            - change_type: "modified"
+              description: "Verifica silêncio do bot após a expiração da sessão sob posse humana"
+        - file: "src/flows/business_hours.py"
+          changes:
+            - change_type: "added"
+              description: "Valida expediente semanal em fuso IANA e informa fora do expediente no simulador"
+        - file: "tests/unit/test_business_hours.py"
+          changes:
+            - change_type: "added"
+              description: "Verifica intervalos, fusos, horário de verão e configuração por ambiente"
+    verification:
+      build_passed: true
+      test_results:
+        command: "python -m pytest -q; ruff check .; mypy"
+        passed: 135
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: "Serviço ainda não está conectado à jornada, fila operacional, interface de atendente ou Chatwoot; expediente apenas informa pedidos no simulador, sem aplicar restrições. Transferências concorrentes testadas em PostgreSQL 18 local isolado."
+    upstream_trace:
+      plan_item: "5.1"
+      requirements: ["RF-12", "RN-04", "RN-09"]
+      full_trace: "RF-12,RN-04,RN-09 → Phase-5.1 → T018 → src/handoff/service.py"
+  - task_id: "T017"
+    description: "Criar diálogos de pedido, agendamento e consentimento"
+    status: "in_progress"
+    implementation:
+      files_changed:
+        - file: "src/flows/appointment_journey.py"
+          changes:
+            - change_type: "added"
+              description: "Comandos simulados para criar, consultar e desmarcar reservas"
+        - file: "src/flows/faq_journey.py"
+          changes:
+            - change_type: "modified"
+              description: "Integra comandos de agendamento após o aceite do atendimento"
+        - file: "src/tasks.py"
+          changes:
+            - change_type: "modified"
+              description: "Fornece serviço de agendamento na transação do worker simulado"
+        - file: "tests/dialogs/test_faq_journey.py"
+          changes:
+            - change_type: "modified"
+              description: "Verifica criação, conflito, isolamento, opt-out e rollback"
+    verification:
+      build_passed: true
+      test_results:
+        command: "python -m pytest -q; ruff check .; mypy"
+        passed: 122
+        failed: 0
+        skipped: 0
+        failures: []
+      notes: "Jornadas são somente simuladas; faltam atendimento real, autenticação adequada e controles de mensagens integrados."
+    upstream_trace:
+      plan_item: "4.1-4.3"
+      requirements: ["RF-10", "RF-11", "RF-15"]
+      full_trace: "RF-10,RF-11,RF-15 → Phase-4 → T017 → src/flows/"
   - task_id: "T004"
     description: "Implementar modelos e migrações"
     status: "completed"
@@ -577,14 +665,6 @@ tasks:
       full_trace: "RF-03,RNF-02,RN-10 → Phase-2.3 → T007 → src/tasks.py"
 
 pending_tasks:
-  - task_id: "T017"
-    description: "Criar diálogos de pedido, agendamento e consentimento"
-    blocked_by: ["T013", "T014", "T015", "T016"]
-    priority: "P1"
-  - task_id: "T018"
-    description: "Criar tickets e fluxo de handoff"
-    blocked_by: ["T004", "T008"]
-    priority: "P1"
   - task_id: "T019"
     description: "Integrar Chatwoot e API do atendente"
     blocked_by: ["T018"]
