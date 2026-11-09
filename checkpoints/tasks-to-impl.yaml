@@ -406,15 +406,23 @@ tasks:
           changes:
             - change_type: "added"
               description: "Testa limites temporais, consentimento, templates e entradas inválidas"
+        - file: "src/channel/guarded.py"
+          changes:
+            - change_type: "added"
+              description: "Adaptador consulta o contexto e valida a política antes de delegar cada envio"
+        - file: "tests/contract/test_guarded_channel.py"
+          changes:
+            - change_type: "added"
+              description: "Testa bloqueio antes do envio, revogação e validação de templates"
     verification:
       build_passed: true
       test_results:
-        command: "python -m pytest tests/unit/test_message_window.py"
-        passed: 15
+        command: "python -m pytest tests/unit/test_message_window.py tests/contract/test_guarded_channel.py"
+        passed: 20
         failed: 0
         skipped: 0
         failures: []
-      notes: "Componente isolado: falta integrá-lo ao canal de envio e contabilizar mensagens."
+      notes: "Adaptador protegido ainda não é usado pelo worker nem por canal real; faltam contexto e catálogo confiáveis, sincronização com opt-out e contagem."
     upstream_trace:
       plan_item: "4.3"
       requirements: ["RF-14", "RF-18", "RN-01", "RN-02", "RN-03"]
@@ -733,5 +741,5 @@ validation:
     - "Consulta de pedido é simulada; autenticação apropriada é necessária antes de integrar dados reais."
     - "Agendamento é serviço simulado; jornada de conversa, horário comercial e agenda real estão pendentes."
     - "T015 parcial: falta coleta de opt-in e imposição do bloqueio no canal de envio ativo real."
-    - "T016 parcial: política de janela e templates não está ligada ao canal; falta contagem de uso."
+    - "T016 parcial: adaptador protegido não está ligado ao worker ou canal real; faltam contexto e catálogo confiáveis, sincronização com opt-out e contagem."
   blocking_issues: []

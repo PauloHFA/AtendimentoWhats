@@ -1,0 +1,48 @@
+batch_id: "B10"
+completed_tasks: []
+blocked_tasks: []
+in_progress_tasks: ["T016"]
+required_endpoints: []
+files_changed:
+  T016:
+    - file: "src/channel/guarded.py"
+      change_type: "created"
+      description: "Channel decorator validates current policy context before each outbound operation"
+    - file: "tests/contract/test_guarded_channel.py"
+      change_type: "created"
+      description: "Tests denial before delegation, opt-out recheck, template checks and failures"
+    - file: "README.md"
+      change_type: "modified"
+      description: "Documents guarded adapter and remaining production integration"
+upstream_artifacts_consumed:
+  T016:
+    - artifact: "plan.md"
+      used_for: "Channel abstraction, 24-hour window and consent restrictions"
+evidence_mapping:
+  T016:
+    - upstream: "plan.md#4.3 Consentimento, expediente e janela de mensagens"
+      output: "src/channel/guarded.py"
+      evidence: "Five channel contract tests and 15 message policy unit tests passed"
+traceability:
+  - requirement: "RF-14"
+    plan_item: "4.3"
+    task: "T016"
+    files: ["src/channel/guarded.py", "tests/contract/test_guarded_channel.py"]
+    status: "partial"
+  - requirement: "RN-03"
+    plan_item: "4.3"
+    task: "T016"
+    files: ["src/channel/guarded.py"]
+    status: "partial"
+protocol_violation: false
+errors: []
+warnings:
+  - severity: HIGH
+    message: "GuardedChannel is not wired to real sending; trustworthy context, template approvals, opt-out synchronization and usage accounting remain pending."
+test_results:
+  T016:
+    command: "python -m pytest tests/contract/test_guarded_channel.py tests/unit/test_message_window.py"
+    passed: 20
+    failed: 0
+    skipped: 0
+    failures: []

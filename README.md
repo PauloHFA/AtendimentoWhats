@@ -74,10 +74,11 @@ simulador e a integração com uma agenda real ainda não foram implementadas.
 
 O componente `src/flows/message_policy.py` verifica a janela de 24 horas,
 o consentimento para mensagens ativas e templates de uma lista aprovada
-fornecida pelo chamador. Ele ainda **não está ligado a um canal de envio**,
-não consulta a Meta e não atualiza contadores de uso. Portanto, não garante
-que envios sejam bloqueados: essa integração continua obrigatória antes
-de habilitar mensagens reais.
+fornecida pelo chamador. `GuardedChannel` aplica essa política antes de
+delegar um envio e consulta o contexto novamente a cada mensagem. O worker
+simulado e qualquer futuro canal real **ainda não usam esse adaptador**;
+o catálogo aprovado, o contexto confiável, a contagem de uso e a sincronização
+do opt-out com o envio real precisam ser integrados antes de mensagens reais.
 
 Os testes de contrato, fluxo e API rodam com `python -m pytest`; não precisam de Docker nem de credenciais da Meta.
 
